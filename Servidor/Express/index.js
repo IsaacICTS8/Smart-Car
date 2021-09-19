@@ -1,7 +1,8 @@
+//const random = require("random");
 const express = require("express"); // Importando o express
 const app = express(); // iniciando o express
 app.use(express.json());
-
+//random.init((min=0),(max=80));
 
 var readline = require('readline');
 var resp = "";
@@ -30,12 +31,13 @@ for (var i = 0; i < colunas; i++) {
 
 console.log(matriz[0][0]);
 */
+var pos_sim = 0;
 const data =
 {
     "data": {
         "id_carrinho": 10,
         "id_prateleira": 1,
-        "id_LED": 78,
+        "id_LED": 77,
         "comando": 0,
         "modo" : 0  // Modo : 0 -> Modo de Alimentação ; 1 - > Modo Finalização ; 2 - > Modo Produção
     }
@@ -121,7 +123,7 @@ app.get("/api",function(req,res){
    } catch (error) {
        console.log(error);
    }
-    
+   
 });
 
 app.get("/connect",function(req,res){
@@ -186,6 +188,24 @@ leitor.on("line", function(answer) {
         data['data']['modo'] = 1;
         
     }
+    if((resp[0]=='T')&&(resp[1]=='E')&&(resp[2]=='R')&&(resp[3]=='M')){
+        pos_sim = getRandomInt(0,80);
+        console.log(pos_sim);
+        data['data']['modo'] = 0;
+        data['data']['comando'] = 1;
+        data['data']['id_LED'] = pos_sim;
+    }
+    if((resp[0]=='R')&&(resp[1]=='L')&&(resp[2]=='O')&&(resp[3]=='A')&&(resp[4]=='D')){
+        console.log(pos_sim);
+        data['data']['modo'] = 0;
+        data['data']['comando'] = 0;
+        data['data']['id_LED'] = pos_sim;
+    }
    
 });
 
+function getRandomInt(min,max){
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max-min))+min;
+}
