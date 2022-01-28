@@ -20,8 +20,8 @@ int dataPin_outclk = 32; // Alteração de Código
 //const char* ssid = "Tau Ceti";           
 //const char* password = "dt151218"; 
 
-const char* ssid ="daikin25";           
-const char* password = "daikin123"; 
+const char* ssid ="ICTS";           
+const char* password = "redeicts2014ICTS"; 
 
 char json[400] = {0};
 char json1[800] = {0};
@@ -198,6 +198,7 @@ void setup()
     Serial.print(".");
   }
   Serial.print("Connected, IP address: ");
+  
   Serial.println(WiFi.localIP());
   digitalWrite(LED_PIN, HIGH);
   const size_t capacity = JSON_OBJECT_SIZE(1) + JSON_ARRAY_SIZE(8) + 146;
@@ -210,7 +211,7 @@ void Conexao()
 {
   if ((WiFi.status() == WL_CONNECTED)) { //Verifica o status da conexão
           HTTPClient http;
-          http.begin("http://192.168.1.56/connect"); // IP do servidor
+          http.begin("http://172.16.17.63/connect"); // IP do servidor
           int httpCode = http.GET();              // Faz a requisição
           if (httpCode > 0) { //verifica código de retorno
             String load = http.getString();
@@ -304,7 +305,7 @@ void loop()
   
         if ((WiFi.status() == WL_CONNECTED)) { //Verifica o status da conexão
           HTTPClient http;
-          http.begin("http://192.168.1.56/api"); // IP do servidor
+          http.begin("http://172.16.17.63/api"); // IP do servidor
           int httpCode = http.GET();              // Faz a requisição
           if (httpCode > 0) { //verifica código de retorno
             String payload = http.getString();

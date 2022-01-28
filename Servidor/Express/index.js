@@ -1,48 +1,59 @@
-//const random = require("random");
+
 const express = require("express"); // Importando o express
 const app = express(); // iniciando o express
-app.use(express.json());
-//random.init((min=0),(max=80));
+
+const bodyParser = require("body-parser");
+
+const connection = require("./database/database"); 
+const Armazena = require("./database/armazena");
+const C001 = require("./database/carrinho_lista");
+
+const requestIp = require('request-ip');
+const res = require("express/lib/response");
+
+// Estou dizendo para o Express usar o EJS como View engine
+app.set('view engine','ejs');
+app.use(express.static('public'));
+// Body parser
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
 
 var readline = require('readline');
-var resp = "";
-
 var leitor = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
-/*
-//Contruindo a Matriz
-var linhas = 6; 
-var colunas = 10; 
-var matriz = new Array(colunas); 
-for (var i = 0; i < colunas; i++) 
-	matriz[i] = new Array(linhas); 
-//print(matriz[10*20+10]);//imprime 100
 
-for (var i = 0; i < colunas; i++) {
-    for (var j = 0; j < linhas; j++) {
-        matriz [i][j] = 0;
+var name_carrinho = ""; //Nome de identificação do Carrinho
+var andar_carrinho = "" ; // Informa o andar no carrinho
+var lado_carrinho = "" ; // Informa o lado do carrinho
+var posicao_carrinho = "" ; // Informa o posicao do andar no carrinho
 
-    }
-}
+ // Teste de Conexão
+    connection
+    .authenticate()
+    .then(() => {
+        console.log('Connection has been established successfully.')
+    })
+    .catch ((error) => {
+    console.error(error);
+  })
 
 
-console.log(matriz[0][0]);
-*/
-var pos_sim = 0;
+app.use(express.json(),requestIp.mw())
 const data =
 {
     "data": {
         "id_carrinho": 10,
-        "id_prateleira": 1,
-        "id_LED": 77,
-        "comando": 0,
-        "modo" : 0  // Modo : 0 -> Modo de Alimentação ; 1 - > Modo Finalização ; 2 - > Modo Produção
+        "id_prateleira": 0,
+        "id_LED": 80,
+        "comando": 1,
+        "modo" : 0 // Modo : 0 -> Modo de Alimentação ; 1 - > Modo Finalização ; 2 - > Modo Produção
     }
 
 }
+//Memória do Carrinho
 var memoria =
 {
     "posicao": {
@@ -77,7 +88,7 @@ var memoria =
                     "p6": 255,
                     "p7": 255,
                     "p8": 255,
-                    "p9": 255
+                    "p9": 0
                   },
         "floor3": { "p0": 0,
                     "p1": 0,
@@ -116,6 +127,8 @@ var memoria =
 }
 
 
+
+
 app.get("/api",function(req,res){
    // res.send(customerWalletsDB);
    try {
@@ -123,11 +136,64 @@ app.get("/api",function(req,res){
    } catch (error) {
        console.log(error);
    }
-   
+    
 });
+
+app.get("/consulta/:namecar",(req,res) =>{
+    var r;
+    
+    data['data']['id_LED'] = 0;
+    data['data']['comando'] = 0;
+    data['data']['modo'] = 0;
+            
+   init_dados();
+    
+    C001.findAll(
+        {raw :true, where: {name_car : req.params.namecar}, order:[['posicao','ASC']]
+    }).then(buscar =>{
+        if(buscar != undefined)
+        {
+            
+            retorno = buscar
+            for (const type of retorno) { 
+               atualiza_memoria(type.posicao, type.andar);
+            }
+            
+            res.send(buscar);
+        }
+    });
+
+});
+
+app.post("/solicitar",(req,res) =>{
+    var serial1 = req.body.serial;
+    var nome_carro = req.body.namecar;
+    serial = serial1.replace(/[&\/\\#,+()$~%.'":*?<>{}_`´-]/g,'');
+    console.log(nome_carro)
+    updateOrCreate(C001,{name_car : nome_carro,serial_comp : serial},{pedido: '1'});
+
+    C001.findOne(
+        { where : {name_car : nome_carro,serial_comp : serial}
+    }).then(buscar =>{
+        if(buscar != undefined)
+        {
+            
+            data['data']['id_prateleira'] = buscar.andar;
+            data['data']['id_LED'] = buscar.posicao;
+            data['data']['comando'] = 1;
+            data['data']['modo'] = 3;
+            res.render("perguntar");       
+        }else{
+            res.redirect("/");
+        }
+    });
+
+})
+
 
 app.get("/connect",function(req,res){
     // res.send(customerWalletsDB);
+  
     try {
      res.status(200).jsonp(memoria);
     } catch (error) {
@@ -135,7 +201,105 @@ app.get("/connect",function(req,res){
     }
      
  });
- 
+
+  //Rota que inicializa o abastecimento do carrinho
+app.get("/inicio/:namecar", (req,res) =>{ 
+    var nome_carro = req.params.namecar;
+    data['data']['modo'] = 0;
+    updateOrCreate(Armazena,{name_carrinho:nome_carro},{name_carrinho:nome_carro,modo_carrinho: '0'});
+    res.send("ok");
+
+});
+  //Rota que resetar o abastecimento do carrinho
+  app.get("/reseta/:namecar", (req,res) =>{ 
+    var nome_carro = req.params.namecar;
+    data['data']['modo'] = 0;
+    updateOrCreate(Armazena,{name_carrinho:nome_carro},{name_carrinho:nome_carro,modo_carrinho: '0'});
+    DeleteAll_reg(C001,{name_car : nome_carro});     
+    res.send("ok");
+
+});
+
+ //Rota que finalizar o abastecimento do carrinho
+app.get("/fim/:namecar", (req,res) =>{ 
+    var nome_carro = req.params.namecar;
+    data['data']['modo'] = 1;
+    updateOrCreate(Armazena,{name_carrinho:nome_carro},{name_carrinho:nome_carro,modo_carrinho: '1'});
+    res.send("ok");
+});
+
+ //Rota de realimentação o abastecimento do carrinho
+ app.get("/rload/:namecar", (req,res) =>{ 
+    var nome_carro = req.params.namecar;
+    data['data']['modo'] = 2;
+    updateOrCreate(Armazena,{name_carrinho:nome_carro},{name_carrinho:nome_carro,modo_carrinho: '2'});
+    res.send("ok");
+});
+
+
+app.get("/confirmar/:posicao_car?,:serial?",(req,res) => {
+    var serial1 = req.params.serial;
+    var posicao_comp = req.params.posicao_car;
+    var resposta = "";
+    serial = serial1.replace(/[&\/\\#,+()$~%.'":*?<>{}_`´-]/g,'');
+
+    name_carrinho = posicao_comp[0]+posicao_comp[1]+posicao_comp[2]+posicao_comp[3];
+    resposta = posicao_comp[9]+posicao_comp[10]; //Armazena a posicao
+    console.log(resposta);
+    C001.findOne(
+        { where : {name_car : name_carrinho,serial_comp : serial}
+    }).then(buscar =>{
+        if(buscar != undefined)
+        {
+            if ((buscar.pedido == '1')&&(buscar.posicao == resposta))
+            {
+                data['data']['id_prateleira'] = buscar.andar;
+                data['data']['id_LED'] = buscar.posicao;
+                data['data']['comando'] = 0;
+                Delete_reg(C001,{name_car : name_carrinho,serial_comp : serial},{pedido: '0'});
+                res.send("Componente Solicitado");           
+            }else{
+                res.send("Não Solicitado");    
+            }           
+        }else{
+            res.send("Não Encontrou");
+        }
+    });
+});
+
+
+app.post("/control/:serial?,:posicao_car?",(req,res) => {
+    var serial = req.params.serial;
+    var posicao_comp = req.params.posicao_car;
+    var ip_req = requestIp.getClientIp(req);
+    var id_local = '';
+    format_dados_banco(posicao_comp);
+    name_carrinho = posicao_comp[0]+posicao_comp[1]+posicao_comp[2]+posicao_comp[3];
+    ip_req = ip_req.toString().replace('::ffff:', '');
+    module.exports = name_carrinho;     
+    data['data']['modo'] = 0;
+        //Localiza o carrinho
+    updateOrCreate(Armazena,{name_carrinho:name_carrinho},{name_carrinho:name_carrinho,modo_carrinho: '0'});
+    res.send("ok")
+    C001.create({
+        name_car : name_carrinho,
+        serial_comp: serial,
+        andar : andar_carrinho,
+        posicao  : posicao_carrinho,
+        lado : lado_carrinho,
+        pedido : '0'
+        });
+        data['data']['id_prateleira'] = andar_carrinho;
+        data['data']['id_LED'] = posicao_carrinho;
+        data['data']['comando'] = 0;            
+});
+
+app.get("/",function(req,res){
+    res.render("index");
+});
+app.get("/perguntar",function(req,res){
+    res.render("perguntar");
+});
 
 
 app.listen(80,function(erro){
@@ -145,7 +309,7 @@ app.listen(80,function(erro){
         console.log("Servidor iniciado com sucesso!");
     }
     
-})
+});
 
 leitor.on("line", function(answer) {
     var resp = answer;
@@ -204,8 +368,255 @@ leitor.on("line", function(answer) {
    
 });
 
-function getRandomInt(min,max){
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max-min))+min;
+function format_dados_banco(dados) // Formata dados pro banco de dados do carrinho
+{
+    name_carrinho = dados[0]+dados[1]+dados[2]+dados[3];
+    andar_carrinho = dados[5];
+    lado_carrinho  = dados[7];
+    posicao_carrinho = dados[9]+dados[10];
+}
+
+async function format_dados_requisicao(dados_lido) // Formata dados pra requisição
+{
+    var dados = "";
+    dados = dados_lido.name_car + "A" + dados_lido.andar + "L" + dados_lido.lado + "P" + dados_lido.posicao 
+    console.log(dados);
+    return dados;
+}
+
+function init_dados()  // Iniciar todos os dados da memória
+{
+    memoria.posicao.floor0.p9 = 255;
+    memoria.posicao.floor0.p8 = 255;
+    memoria.posicao.floor0.p7 = 255;
+    memoria.posicao.floor0.p6 = 255;
+    memoria.posicao.floor0.p5 = 255;
+    memoria.posicao.floor0.p4 = 255;
+    memoria.posicao.floor0.p3 = 255;
+    memoria.posicao.floor0.p2 = 255;
+    memoria.posicao.floor0.p1 = 255;
+    memoria.posicao.floor0.p0 = 255;
+
+    memoria.posicao.floor1.p9 = 255;
+    memoria.posicao.floor1.p8 = 255;
+    memoria.posicao.floor1.p7 = 255;
+    memoria.posicao.floor1.p6 = 255;
+    memoria.posicao.floor1.p5 = 255;
+    memoria.posicao.floor1.p4 = 255;
+    memoria.posicao.floor1.p3 = 255;
+    memoria.posicao.floor1.p2 = 255;
+    memoria.posicao.floor1.p1 = 255;
+    memoria.posicao.floor1.p0 = 255;
+    
+    memoria.posicao.floor2.p9 = 255;
+    memoria.posicao.floor2.p8 = 255;
+    memoria.posicao.floor2.p7 = 255;
+    memoria.posicao.floor2.p6 = 255;
+    memoria.posicao.floor2.p5 = 255;
+    memoria.posicao.floor2.p4 = 255;
+    memoria.posicao.floor2.p3 = 255;
+    memoria.posicao.floor2.p2 = 255;
+    memoria.posicao.floor2.p1 = 255;
+    memoria.posicao.floor2.p0 = 255;
+
+    memoria.posicao.floor3.p9 = 255;
+    memoria.posicao.floor3.p8 = 255;
+    memoria.posicao.floor3.p7 = 255;
+    memoria.posicao.floor3.p6 = 255;
+    memoria.posicao.floor3.p5 = 255;
+    memoria.posicao.floor3.p4 = 255;
+    memoria.posicao.floor3.p3 = 255;
+    memoria.posicao.floor3.p2 = 255;
+    memoria.posicao.floor3.p1 = 255;
+    memoria.posicao.floor3.p0 = 255;
+
+    memoria.posicao.floor4.p9 = 255;
+    memoria.posicao.floor4.p8 = 255;
+    memoria.posicao.floor4.p7 = 255;
+    memoria.posicao.floor4.p6 = 255;
+    memoria.posicao.floor4.p5 = 255;
+    memoria.posicao.floor4.p4 = 255;
+    memoria.posicao.floor4.p3 = 255;
+    memoria.posicao.floor4.p2 = 255;
+    memoria.posicao.floor4.p1 = 255;
+    memoria.posicao.floor4.p0 = 255;
+
+    memoria.posicao.floor5.p9 = 255;
+    memoria.posicao.floor5.p8 = 255;
+    memoria.posicao.floor5.p7 = 255;
+    memoria.posicao.floor5.p6 = 255;
+    memoria.posicao.floor5.p5 = 255;
+    memoria.posicao.floor5.p4 = 255;
+    memoria.posicao.floor5.p3 = 255;
+    memoria.posicao.floor5.p2 = 255;
+    memoria.posicao.floor5.p1 = 255;
+    memoria.posicao.floor5.p0 = 255;
+}
+
+function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
+{
+    var num_posicao = Number.parseInt(dados_posicao, 10);
+    var num_andar  = Number.parseInt(dados_andar, 10);
+    var nr_pos = 0;
+    console.log(num_andar + " , " + num_posicao);
+    if(num_posicao >= 73){ 
+        nr_pos = num_posicao - 73;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p9 = bitClear(memoria.posicao.floor0.p9,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p9 = bitClear(memoria.posicao.floor1.p9,nr_pos);
+        }
+    }
+    if((num_posicao <= 72)&&(num_posicao >= 65)){ 
+        nr_pos = num_posicao - 65;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p8 = bitClear(memoria.posicao.floor0.p8,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p8 = bitClear(memoria.posicao.floor1.p8,nr_pos);
+        }
+    }
+    if((num_posicao <= 64)&&(num_posicao >= 57)){ 
+        nr_pos = num_posicao - 57;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p7 = bitClear(memoria.posicao.floor0.p7,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p7 = bitClear(memoria.posicao.floor1.p7,nr_pos);
+        }
+    }
+    if((num_posicao <= 56)&&(num_posicao >= 49)){ 
+        nr_pos = num_posicao - 49;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p6 = bitClear(memoria.posicao.floor0.p6,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p6 = bitClear(memoria.posicao.floor1.p6,nr_pos);
+        }
+    }
+    if((num_posicao <= 48)&&(num_posicao >= 41)){ 
+        nr_pos = num_posicao - 41;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p5 = bitClear(memoria.posicao.floor0.p5,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p5 = bitClear(memoria.posicao.floor1.p5,nr_pos);
+        }
+    }
+    if((num_posicao <= 40)&&(num_posicao >= 33)){ 
+        nr_pos = num_posicao - 33;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p4 = bitClear(memoria.posicao.floor0.p4,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p4 = bitClear(memoria.posicao.floor1.p4,nr_pos);
+        }
+    }
+    if((num_posicao <= 32)&&(num_posicao >= 25)){ 
+        nr_pos = num_posicao - 25;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p3 = bitClear(memoria.posicao.floor0.p3,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p3 = bitClear(memoria.posicao.floor1.p3,nr_pos);
+        }
+    }
+    if((num_posicao <= 24)&&(num_posicao >= 17)){ 
+        nr_pos = num_posicao - 17;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p2= bitClear(memoria.posicao.floor0.p2,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p2 = bitClear(memoria.posicao.floor1.p2,nr_pos);
+        }
+    }
+    if((num_posicao <= 16)&&(num_posicao >= 9)){ 
+        nr_pos = num_posicao - 9;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p1 = bitClear(memoria.posicao.floor0.p1,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p1 = bitClear(memoria.posicao.floor1.p1,nr_pos);
+        }
+    }
+    if((num_posicao <= 8)&&(num_posicao >= 1)){ 
+        nr_pos = num_posicao - 1;
+        if(num_andar == 0)
+        {
+        memoria.posicao.floor0.p0 = bitClear(memoria.posicao.floor0.p0,nr_pos);
+        }
+        if(num_andar == 1)
+        {
+        memoria.posicao.floor1.p0 = bitClear(memoria.posicao.floor1.p0,nr_pos);
+        }
+    }
+   //console.log(nr_pos +" , " + num_andar); 
+  
+}
+
+function bitClear(value,bit_pos)  // Desliga o led
+{
+    var valor = 0;
+    var valor_tmp = 255;
+    valor_tmp  =  ~(1 << bit_pos);
+    valor = value & valor_tmp;
+    return valor;
+}
+
+async function updateOrCreate (model, where, newItem)  //Localiza o registro para atualizar , ou criar no banco de dados
+{
+    // First try to find the record
+   const foundItem = await model.findOne({where});
+   if (!foundItem) {
+        // Item not found, create a new one
+        return  ;
+    }
+    // Found an item, update it
+    const item = await model.update(newItem, {where});
+    return {item, created: false};
+}
+
+
+async function Delete_reg (model, where, newItem) {
+    // First try to find the record
+   const foundItem = await model.findOne({where});
+   if (!foundItem) {
+        // Item not found, create a new one
+        
+        return  {item, created: false};
+    }
+    // Found an item, update it
+    foundItem.destroy();
+   // const item = await model.destoy({where});
+    return true;
+}
+
+async function DeleteAll_reg (model, where) {
+    // First try to find the record
+  
+    model.destroy({
+       where}, 
+        {trucate: false}
+    );
+   // const item = await model.destoy({where});
+    return true;
 }
