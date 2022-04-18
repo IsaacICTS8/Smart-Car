@@ -8,25 +8,28 @@
 // for ESP32 Microcontrollers
 #define latchPin_SIPO 17
 #define clockPin_SIPO 19
+
+
 #define dataPin_SIPO1 23
 #define dataPin_SIPO2 22
 #define dataPin_SIPO3 21
 #define dataPin_SIPO4 27
 #define dataPin_SIPO5 26
 #define dataPin_SIPO6 25
+
 int dataPin_En = 16; // Alteração de Código
 int dataPin_outclk = 32; // Alteração de Código
 
 //const char* ssid = "Tau Ceti";           
 //const char* password = "dt151218"; 
 
-const char* ssid ="ICTS";           
-const char* password = "redeicts2014ICTS"; 
+const char* ssid ="daikin25";           
+const char* password = "daikin123"; 
 
 char json[400] = {0};
-char json1[800] = {0};
+char json1[4800] = {0};
 StaticJsonDocument<256> doc;
-StaticJsonDocument<600> doc1;
+StaticJsonDocument<1600> doc1;
 
 long int  leds = 0,leds_ant=0,leds_inv=0,leds_dir=0;
 int pisca = 0,controle_led=0;
@@ -86,7 +89,7 @@ typedef struct{
     int andar_17;
     int andar_18;
     int andar_19;
-    /*int andar_20;
+    int andar_20;
     int andar_21;
     int andar_22;
     int andar_23;
@@ -116,7 +119,7 @@ typedef struct{
     int andar_47;
     int andar_48;
     int andar_49;
-    int andar_50;
+     int andar_50;
     int andar_51;
     int andar_52;
     int andar_53;
@@ -126,17 +129,7 @@ typedef struct{
     int andar_57;
     int andar_58;
     int andar_59;
-    int andar_60;
-    int andar_61;
-    int andar_62;
-    int andar_63;
-    int andar_64;
-    int andar_65;
-    int andar_66;
-    int andar_67;
-    int andar_68;
-    int andar_69;
-    */
+ 
 }PacketMem; 
 
 
@@ -206,12 +199,31 @@ void setup()
   Serial.println("Iniciando Conexão com servidor");               
   delay(500); 
 }
+void Consulta()
+{
+  if ((WiFi.status() == WL_CONNECTED)) { //Verifica o status da conexão
+          HTTPClient http;
+          http.begin("http://192.168.1.2/consulta/C001"); // IP do servidor
+          int httpCode = http.GET();              // Faz a requisição
+          if (httpCode > 0) { //verifica código de retorno
+            String load = http.getString();
+
+              if(sizeof(load) > 0) {
+               
+                http.end();
+               
+                }
+          }
+   }
+                
+
+}
 
 void Conexao()
 {
   if ((WiFi.status() == WL_CONNECTED)) { //Verifica o status da conexão
           HTTPClient http;
-          http.begin("http://172.16.17.63/connect"); // IP do servidor
+          http.begin("http://192.168.1.2/connect"); // IP do servidor
           int httpCode = http.GET();              // Faz a requisição
           if (httpCode > 0) { //verifica código de retorno
             String load = http.getString();
@@ -219,17 +231,7 @@ void Conexao()
               if(sizeof(load) > 0) {
                 Memoria = resultOfGet1(load);
                 http.end();
-                /*Serial.println(Memoria.andar_00);
-                Serial.println(Memoria.andar_01);
-                Serial.println(Memoria.andar_02);
-                Serial.println(Memoria.andar_03);
-                Serial.println(Memoria.andar_04);
-                Serial.println(Memoria.andar_05);
-                Serial.println(Memoria.andar_06);
-                Serial.println(Memoria.andar_07);
-                Serial.println(Memoria.andar_08);
-                Serial.println(Memoria.andar_09);
-                */
+                
                 ledMatrix[0][9] = Memoria.andar_09;
                 ledMatrix[0][8] = Memoria.andar_08;
                 ledMatrix[0][7] = Memoria.andar_07;
@@ -251,6 +253,53 @@ void Conexao()
                 ledMatrix[1][2] = Memoria.andar_12;
                 ledMatrix[1][1] = Memoria.andar_11;
                 ledMatrix[1][0] = Memoria.andar_10;
+
+                
+                ledMatrix[2][9] = Memoria.andar_29;
+                ledMatrix[2][8] = Memoria.andar_28;
+                ledMatrix[2][7] = Memoria.andar_27;
+                ledMatrix[2][6] = Memoria.andar_26;
+                ledMatrix[2][5] = Memoria.andar_25;
+                ledMatrix[2][4] = Memoria.andar_24;
+                ledMatrix[2][3] = Memoria.andar_23;
+                ledMatrix[2][2] = Memoria.andar_22;
+                ledMatrix[2][1] = Memoria.andar_21;
+                ledMatrix[2][0] = Memoria.andar_20;
+
+                ledMatrix[3][9] = Memoria.andar_39;
+                ledMatrix[3][8] = Memoria.andar_38;
+                ledMatrix[3][7] = Memoria.andar_37;
+                ledMatrix[3][6] = Memoria.andar_36;
+                ledMatrix[3][5] = Memoria.andar_35;
+                ledMatrix[3][4] = Memoria.andar_34;
+                ledMatrix[3][3] = Memoria.andar_33;
+                ledMatrix[3][2] = Memoria.andar_32;
+                ledMatrix[3][1] = Memoria.andar_31;
+                ledMatrix[3][0] = Memoria.andar_30;
+
+                ledMatrix[4][9] = Memoria.andar_49;
+                ledMatrix[4][8] = Memoria.andar_48;
+                ledMatrix[4][7] = Memoria.andar_47;
+                ledMatrix[4][6] = Memoria.andar_46;
+                ledMatrix[4][5] = Memoria.andar_45;
+                ledMatrix[4][4] = Memoria.andar_44;
+                ledMatrix[4][3] = Memoria.andar_43;
+                ledMatrix[4][2] = Memoria.andar_42;
+                ledMatrix[4][1] = Memoria.andar_41;
+                ledMatrix[4][0] = Memoria.andar_40;
+
+                ledMatrix[5][9] = Memoria.andar_59;
+                ledMatrix[5][8] = Memoria.andar_58;
+                ledMatrix[5][7] = Memoria.andar_57;
+                ledMatrix[5][6] = Memoria.andar_56;
+                ledMatrix[5][5] = Memoria.andar_55;
+                ledMatrix[5][4] = Memoria.andar_54;
+                ledMatrix[5][3] = Memoria.andar_53;
+                ledMatrix[5][2] = Memoria.andar_52;
+                ledMatrix[5][1] = Memoria.andar_51;
+                ledMatrix[5][0] = Memoria.andar_50;
+
+
                 updateShiftRegister(ledMatrix);
                 //Serial.println(Memoria.andar_14);
                 /*0 int i;
@@ -276,20 +325,26 @@ void loop()
   {
     case (InitState):
     {
+      for( int cont=0; cont < 2;cont++)
+      {
       SetAllLed();
       updateShiftRegister(ledMatrix);
       delay(1000);
       ClearAllLed();
       updateShiftRegister(ledMatrix);
-      delay(500);
+       delay(1000);  
+      }
       SetAllLed();
       updateShiftRegister(ledMatrix);
-      delay(1000);
-      ClearAllLed();
-      updateShiftRegister(ledMatrix);
-      delay(500);
-      SetAllLed();
-      updateShiftRegister(ledMatrix);
+     
+      /* while(1){
+          Serial.println("teste");
+          SetAllLed();
+          updateShiftRegister(ledMatrix);
+           delay(1000);
+         
+      }*/
+      Consulta();
       Conexao();
       state = WaitState;
     }
@@ -302,10 +357,16 @@ void loop()
       if (currentMillis - previousMillis > period) { // interval passed?
         previousMillis = currentMillis; // save the last time
         Serial.println("Connect");
-  
+        if(IncomingCommand.id_mode == 2){ // Modo de Producao
+                Serial.println("Entrou no Modo 2.");
+                 Consulta();
+                  Conexao();
+                  IncomingCommand.id_mode = 0;
+                  break;  
+                }
         if ((WiFi.status() == WL_CONNECTED)) { //Verifica o status da conexão
           HTTPClient http;
-          http.begin("http://172.16.17.63/api"); // IP do servidor
+          http.begin("http://192.168.1.2/api"); // IP do servidor
           int httpCode = http.GET();              // Faz a requisição
           if (httpCode > 0) { //verifica código de retorno
             String payload = http.getString();
@@ -318,7 +379,7 @@ void loop()
                 Serial.println(IncomingCommand.id_LED);
                 Serial.println(IncomingCommand.command);
                 Serial.println(IncomingCommand.id_mode);
-                
+               //delay(1000);
                 if(IncomingCommand.id_mode == 1){
                   ClearAllLed();
                   updateShiftRegister(ledMatrix);
@@ -331,11 +392,13 @@ void loop()
                   http.end(); 
                   break;
                 }
+
                 if(IncomingCommand.command == Apaga) {  // Comando Apaga LED
                   state = LedOffState;
                   http.end(); 
                   break;
                 }
+
                 if(IncomingCommand.command == InitPisca ) { // Comando inicia pisca LED
                   state = BlinkOnState;
                   http.end(); 
@@ -363,6 +426,10 @@ void loop()
       SetLed(IncomingCommand.id_LED, IncomingCommand.id_prateleira);
       
       updateShiftRegister(ledMatrix);
+      
+      
+     
+
       state = WaitState;
       
     }
@@ -371,8 +438,9 @@ void loop()
     case (LedOffState):
     {
       ClearLed(IncomingCommand.id_LED, IncomingCommand.id_prateleira);
-      //Serial.println(ledMatrix[0][9]);
+      
       updateShiftRegister(ledMatrix);
+      
       state = WaitState;
      
     }
@@ -443,6 +511,7 @@ void SetLed(int led, int floor)
 void ClearLed(int led, int floor)
 {
 
+ 
   if(led < 41) {
     if(led < 9) {
       //ledMatrix[floor][0] = ledMatrix[floor][0] & (0<<(led-1));
@@ -527,7 +596,7 @@ PacketStruct resultOfGet(String msg)
   //Trata os dados para formato Json
   PacketStruct packet;
   memset(json,0,sizeof(json));
-  msg.toCharArray(json, 800);
+  msg.toCharArray(json, 1600);
   deserializeJson(doc, json);
 
   JsonObject data = doc["data"];
@@ -542,12 +611,16 @@ PacketStruct resultOfGet(String msg)
 PacketMem resultOfGet1(String msg)
 { 
   //Trata os dados para formato Json
+
   PacketMem packet;
   memset(json1,0,sizeof(json1));
-  msg.toCharArray(json1,1600);
+  msg.toCharArray(json1,4200);
   deserializeJson(doc1, json1);
 
   JsonObject posicao = doc1["posicao"];
+
+  
+ 
   packet.andar_00 = posicao["floor0"]["p0"];
   packet.andar_01 = posicao["floor0"]["p1"];
   packet.andar_02 = posicao["floor0"]["p2"];
@@ -569,7 +642,50 @@ PacketMem resultOfGet1(String msg)
   packet.andar_17= posicao["floor1"]["p7"];
   packet.andar_18 = posicao["floor1"]["p8"];
   packet.andar_19 = posicao["floor1"]["p9"];
+
+  packet.andar_20 = posicao["floor2"]["p0"];
+  packet.andar_21 = posicao["floor2"]["p1"];
+  packet.andar_22 = posicao["floor2"]["p2"];
+  packet.andar_23 = posicao["floor2"]["p3"];
+  packet.andar_24 = posicao["floor2"]["p4"];
+  packet.andar_25 = posicao["floor2"]["p5"];
+  packet.andar_26 = posicao["floor2"]["p6"];
+  packet.andar_27= posicao["floor2"]["p7"];
+  packet.andar_28 = posicao["floor2"]["p8"];
+  packet.andar_29 = posicao["floor2"]["p9"];
   
+  packet.andar_30 = posicao["floor3"]["p0"];
+  packet.andar_31 = posicao["floor3"]["p1"];
+  packet.andar_32 = posicao["floor3"]["p2"];
+  packet.andar_33 = posicao["floor3"]["p3"];
+  packet.andar_34 = posicao["floor3"]["p4"];
+  packet.andar_35 = posicao["floor3"]["p5"];
+  packet.andar_36 = posicao["floor3"]["p6"];
+  packet.andar_37= posicao["floor3"]["p7"];
+  packet.andar_38 = posicao["floor3"]["p8"];
+  packet.andar_39 = posicao["floor3"]["p9"];
+  
+  packet.andar_40 = posicao["floor4"]["p0"];
+  packet.andar_41 = posicao["floor4"]["p1"];
+  packet.andar_42 = posicao["floor4"]["p2"];
+  packet.andar_43 = posicao["floor4"]["p3"];
+  packet.andar_44 = posicao["floor4"]["p4"];
+  packet.andar_45 = posicao["floor4"]["p5"];
+  packet.andar_46 = posicao["floor4"]["p6"];
+  packet.andar_47= posicao["floor4"]["p7"];
+  packet.andar_48 = posicao["floor4"]["p8"];
+  packet.andar_49 = posicao["floor4"]["p9"];
+
+  packet.andar_50 = posicao["floor5"]["p0"];
+  packet.andar_51 = posicao["floor5"]["p1"];
+  packet.andar_52 = posicao["floor5"]["p2"];
+  packet.andar_53 = posicao["floor5"]["p3"];
+  packet.andar_54 = posicao["floor5"]["p4"];
+  packet.andar_55 = posicao["floor5"]["p5"];
+  packet.andar_56 = posicao["floor5"]["p6"];
+  packet.andar_57= posicao["floor5"]["p7"];
+  packet.andar_58 = posicao["floor5"]["p8"];
+  packet.andar_59 = posicao["floor5"]["p9"];
   return(packet);
 }
 
@@ -581,26 +697,28 @@ void updateShiftRegister(byte ledMatrix[FloorNum][ShiftRegNum])
 {
   int i;
   int j;
-
-
   digitalWrite(latchPin_SIPO, LOW);
- 
-  for (i=0;i<ShiftRegNum;i++){
-
+  delay(50);
+  for (i=0;i<ShiftRegNum ;i++){
+    
     // if LSBFISRT
     for(j=0; j<8; j++) {
       digitalWrite(clockPin_SIPO, LOW);
-
+      delay(5);
+      
       digitalWrite(dataPin_SIPO1, ((ledMatrix[0][i])>>j) % 2);
       digitalWrite(dataPin_SIPO2, (ledMatrix[1][i]>>j) % 2);
       digitalWrite(dataPin_SIPO3, (ledMatrix[2][i]>>j) % 2);
       digitalWrite(dataPin_SIPO4, (ledMatrix[3][i]>>j) % 2);
       digitalWrite(dataPin_SIPO5, (ledMatrix[4][i]>>j) % 2);
-      digitalWrite(dataPin_SIPO6, (ledMatrix[5][i]>>j) % 2);    
-
+      digitalWrite(dataPin_SIPO6, (ledMatrix[5][i]>>j) % 2); 
+     // delay(1);
+        
+      
       digitalWrite(clockPin_SIPO, HIGH); // Alteração no código
+      delay(5);
     }
-
+     
 
     // if MSBFISRT
     // for(i=7; i<=0; i--) {

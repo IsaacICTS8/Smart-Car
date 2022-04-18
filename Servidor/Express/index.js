@@ -88,47 +88,45 @@ var memoria =
                     "p6": 255,
                     "p7": 255,
                     "p8": 255,
-                    "p9": 0
+                    "p9": 255
                   },
-        "floor3": { "p0": 0,
-                    "p1": 0,
-                    "p2": 0,
-                    "p3": 0,
-                    "p4": 0,
-                    "p5": 0,
-                    "p6": 0,
-                    "p7": 0,
-                    "p8": 0,
-                    "p9": 127
-                  },
-        "floor4": { "p0": 0,
-                    "p1": 0,
-                    "p2": 0,
-                    "p3": 0,
-                    "p4": 0,
-                    "p5": 0,
-                    "p6": 0,
-                    "p7": 0,
-                    "p8": 0,
-                    "p9": 127
-                  },
-        "floor5": { "p0": 0,
-                    "p1": 0,
-                    "p2": 0,
-                    "p3": 0,
-                    "p4": 0,
-                    "p5": 0,
-                    "p6": 0,
-                    "p7": 0,
-                    "p8": 0,
-                    "p9": 127
-                    }
+        "floor3": {  "p0": 255,
+                    "p1": 255,
+                    "p2": 255,
+                    "p3": 255,
+                    "p4": 255,
+                    "p5": 255,
+                    "p6": 255,
+                    "p7": 255,
+                    "p8": 255,
+                    "p9": 255
+                },
+        "floor4": {  "p0": 255,
+                    "p1": 255,
+                    "p2": 255,
+                    "p3": 255,
+                    "p4": 255,
+                    "p5": 255,
+                    "p6": 255,
+                    "p7": 255,
+                    "p8": 255,
+                    "p9": 255
+                 },
+        "floor5": {  "p0": 255,
+                 "p1": 255,
+                 "p2": 255,
+                 "p3": 255,
+                 "p4": 255,
+                 "p5": 255,
+                 "p6": 255,
+                 "p7": 255,
+                 "p8": 255,
+                 "p9": 255
+              }
     }
 }
 
-
-
-
+//Realiza atualização da memória
 app.get("/api",function(req,res){
    // res.send(customerWalletsDB);
    try {
@@ -139,6 +137,7 @@ app.get("/api",function(req,res){
     
 });
 
+// Consulta o banco de dados para atualizar a mémoria do carrinho
 app.get("/consulta/:namecar",(req,res) =>{
     var r;
     
@@ -165,6 +164,7 @@ app.get("/consulta/:namecar",(req,res) =>{
 
 });
 
+// Rota que faz a solicitação via página
 app.post("/solicitar",(req,res) =>{
     var serial1 = req.body.serial;
     var nome_carro = req.body.namecar;
@@ -190,7 +190,7 @@ app.post("/solicitar",(req,res) =>{
 
 })
 
-
+//Realiza a leitura da memoria do carrinho
 app.get("/connect",function(req,res){
     // res.send(customerWalletsDB);
   
@@ -236,7 +236,7 @@ app.get("/fim/:namecar", (req,res) =>{
     res.send("ok");
 });
 
-
+// Confirma a posição e a retirada do material do carrinho
 app.get("/confirmar/:posicao_car?,:serial?",(req,res) => {
     var serial1 = req.params.serial;
     var posicao_comp = req.params.posicao_car;
@@ -244,7 +244,7 @@ app.get("/confirmar/:posicao_car?,:serial?",(req,res) => {
     serial = serial1.replace(/[&\/\\#,+()$~%.'":*?<>{}_`´-]/g,'');
 
     name_carrinho = posicao_comp[0]+posicao_comp[1]+posicao_comp[2]+posicao_comp[3];
-    resposta = posicao_comp[9]+posicao_comp[10]; //Armazena a posicao
+    resposta = posicao_comp[11]+posicao_comp[12]; //Armazena a posicao
     console.log(resposta);
     C001.findOne(
         { where : {name_car : name_carrinho,serial_comp : serial}
@@ -267,7 +267,7 @@ app.get("/confirmar/:posicao_car?,:serial?",(req,res) => {
     });
 });
 
-
+//Cadastra o componete na posição desejada
 app.post("/control/:serial?,:posicao_car?",(req,res) => {
     var serial = req.params.serial;
     var posicao_comp = req.params.posicao_car;
@@ -294,9 +294,11 @@ app.post("/control/:serial?,:posicao_car?",(req,res) => {
         data['data']['comando'] = 0;            
 });
 
+// Abre a pagina inicial do carrinho inteligente
 app.get("/",function(req,res){
     res.render("index");
 });
+//Abre a pagina de solicitação de material pro carrinho
 app.get("/perguntar",function(req,res){
     res.render("perguntar");
 });
@@ -322,15 +324,15 @@ leitor.on("line", function(answer) {
     part_id = parseInt(resp[1]+resp[2]+resp[3],10); 
     console.log("ID = "+part_id);
         if((resp[4]=='A')||(resp[4]=='a')){
-        andar = parseInt(resp[5],10);
+        andar = parseInt(resp[6],10);
         andar = (andar - 5)*-1;
         console.log("Andar = "+andar);
-            if((resp[6]=='L')||(resp[6]=='l')){
-                lado = parseInt(resp[7],10);
+            if((resp[7]=='L')||(resp[7]=='l')){
+                lado = parseInt(resp[9],10);
                
                 console.log("Lado = "+lado);
-                if((resp[8]=='P')||(resp[8]=='p')){
-                    pos_id = parseInt(resp[9]+resp[10],10);
+                if((resp[10]=='P')||(resp[10]=='p')){
+                    pos_id = parseInt(resp[11]+resp[12],10);
                      if (lado == 2){
                      pos_id = (pos_id - 41)*-1;
                      }
@@ -371,9 +373,9 @@ leitor.on("line", function(answer) {
 function format_dados_banco(dados) // Formata dados pro banco de dados do carrinho
 {
     name_carrinho = dados[0]+dados[1]+dados[2]+dados[3];
-    andar_carrinho = dados[5];
-    lado_carrinho  = dados[7];
-    posicao_carrinho = dados[9]+dados[10];
+    andar_carrinho = dados[6];
+    lado_carrinho  = dados[9];
+    posicao_carrinho = dados[11]+dados[12];
 }
 
 async function format_dados_requisicao(dados_lido) // Formata dados pra requisição
@@ -469,6 +471,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         {
         memoria.posicao.floor1.p9 = bitClear(memoria.posicao.floor1.p9,nr_pos);
         }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p9 = bitClear(memoria.posicao.floor2.p9,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p9 = bitClear(memoria.posicao.floor3.p9,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p9 = bitClear(memoria.posicao.floor4.p9,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p9 = bitClear(memoria.posicao.floor5.p9,nr_pos);
+        }
     }
     if((num_posicao <= 72)&&(num_posicao >= 65)){ 
         nr_pos = num_posicao - 65;
@@ -479,6 +497,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         if(num_andar == 1)
         {
         memoria.posicao.floor1.p8 = bitClear(memoria.posicao.floor1.p8,nr_pos);
+        }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p8 = bitClear(memoria.posicao.floor2.p8,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p8 = bitClear(memoria.posicao.floor3.p8,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p8 = bitClear(memoria.posicao.floor4.p8,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p8 = bitClear(memoria.posicao.floor5.p8,nr_pos);
         }
     }
     if((num_posicao <= 64)&&(num_posicao >= 57)){ 
@@ -491,6 +525,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         {
         memoria.posicao.floor1.p7 = bitClear(memoria.posicao.floor1.p7,nr_pos);
         }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p7 = bitClear(memoria.posicao.floor2.p7,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p7 = bitClear(memoria.posicao.floor3.p7,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p7 = bitClear(memoria.posicao.floor4.p7,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p7 = bitClear(memoria.posicao.floor5.p7,nr_pos);
+        }
     }
     if((num_posicao <= 56)&&(num_posicao >= 49)){ 
         nr_pos = num_posicao - 49;
@@ -501,6 +551,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         if(num_andar == 1)
         {
         memoria.posicao.floor1.p6 = bitClear(memoria.posicao.floor1.p6,nr_pos);
+        }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p6 = bitClear(memoria.posicao.floor2.p6,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p6 = bitClear(memoria.posicao.floor3.p6,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p6 = bitClear(memoria.posicao.floor4.p6,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p6 = bitClear(memoria.posicao.floor5.p6,nr_pos);
         }
     }
     if((num_posicao <= 48)&&(num_posicao >= 41)){ 
@@ -513,6 +579,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         {
         memoria.posicao.floor1.p5 = bitClear(memoria.posicao.floor1.p5,nr_pos);
         }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p5 = bitClear(memoria.posicao.floor2.p5,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p5 = bitClear(memoria.posicao.floor3.p5,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p5 = bitClear(memoria.posicao.floor4.p5,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p5 = bitClear(memoria.posicao.floor5.p5,nr_pos);
+        }
     }
     if((num_posicao <= 40)&&(num_posicao >= 33)){ 
         nr_pos = num_posicao - 33;
@@ -523,6 +605,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         if(num_andar == 1)
         {
         memoria.posicao.floor1.p4 = bitClear(memoria.posicao.floor1.p4,nr_pos);
+        }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p4 = bitClear(memoria.posicao.floor2.p4,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p4 = bitClear(memoria.posicao.floor3.p4,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p4 = bitClear(memoria.posicao.floor4.p4,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p4 = bitClear(memoria.posicao.floor5.p4,nr_pos);
         }
     }
     if((num_posicao <= 32)&&(num_posicao >= 25)){ 
@@ -535,6 +633,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         {
         memoria.posicao.floor1.p3 = bitClear(memoria.posicao.floor1.p3,nr_pos);
         }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p3 = bitClear(memoria.posicao.floor2.p3,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p3 = bitClear(memoria.posicao.floor3.p3,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p3 = bitClear(memoria.posicao.floor4.p3,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p3 = bitClear(memoria.posicao.floor5.p3,nr_pos);
+        }
     }
     if((num_posicao <= 24)&&(num_posicao >= 17)){ 
         nr_pos = num_posicao - 17;
@@ -545,6 +659,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         if(num_andar == 1)
         {
         memoria.posicao.floor1.p2 = bitClear(memoria.posicao.floor1.p2,nr_pos);
+        }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p2 = bitClear(memoria.posicao.floor2.p2,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p2 = bitClear(memoria.posicao.floor3.p2,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p2 = bitClear(memoria.posicao.floor4.p2,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p2 = bitClear(memoria.posicao.floor5.p2,nr_pos);
         }
     }
     if((num_posicao <= 16)&&(num_posicao >= 9)){ 
@@ -557,6 +687,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         {
         memoria.posicao.floor1.p1 = bitClear(memoria.posicao.floor1.p1,nr_pos);
         }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p1 = bitClear(memoria.posicao.floor2.p1,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p1 = bitClear(memoria.posicao.floor3.p1,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p1 = bitClear(memoria.posicao.floor4.p1,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p1 = bitClear(memoria.posicao.floor5.p1,nr_pos);
+        }
     }
     if((num_posicao <= 8)&&(num_posicao >= 1)){ 
         nr_pos = num_posicao - 1;
@@ -567,6 +713,22 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         if(num_andar == 1)
         {
         memoria.posicao.floor1.p0 = bitClear(memoria.posicao.floor1.p0,nr_pos);
+        }
+        if(num_andar == 2)
+        {
+        memoria.posicao.floor2.p0 = bitClear(memoria.posicao.floor2.p0,nr_pos);
+        }
+        if(num_andar == 3)
+        {
+        memoria.posicao.floor3.p0 = bitClear(memoria.posicao.floor3.p0,nr_pos);
+        }
+        if(num_andar == 4)
+        {
+        memoria.posicao.floor4.p0 = bitClear(memoria.posicao.floor4.p0,nr_pos);
+        }
+        if(num_andar == 5)
+        {
+        memoria.posicao.floor5.p0 = bitClear(memoria.posicao.floor5.p0,nr_pos);
         }
     }
    //console.log(nr_pos +" , " + num_andar); 
