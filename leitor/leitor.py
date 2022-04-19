@@ -22,6 +22,8 @@ WIDTH = 128
 HEIGHT = 32
 BORDER = 5
 
+modo_trab = 0
+
 def format_dados(posic):
     #Rotina de formação de dados de posição para o banco
     if len(posic) == 13:
@@ -58,13 +60,20 @@ def Modo_trab( situacao):
 
 def habilita_back():
     # Habilita a comunicação com servidor da fabrica
-    global conn_back,obj,draw
+    global conn_back,obj,draw,modo_trab
     cmd = "hostname -I | cut -d\' \' -f1"
     IP = subprocess.check_output(cmd, shell = True )
     
     try:
         r1 = requests.get(f"http://{ip.ip_serv}:{ip.port_serv}",timeout=1)
         if(r1.status_code == 200):
+            r2 = requests.get(f"http://{ip.ip_serv}:{ip.port_serv}/api",timeout=1)
+            resp = r2.text
+            datajson = json.loads(resp)
+            
+            if (datajson['data']['modo'] == 1):
+                modo_trab = 1
+                
             draw.text((0, 16), "Connect", font=font, fill=255)
         else :
             draw.text((0, 16), "No Connect", font=font, fill=255)
@@ -187,16 +196,17 @@ draw.rectangle((0, 0, oled.width, oled.height), outline=255, fill=255)
 
 font = ImageFont.truetype('/home/pi/carrinho-inteligente/leitor/PixelOperator.ttf', 16)
 #font = ImageFont.load_default()
-modo_trab = 0;
+#modo_trab = 0;
 while True:
 
     # Draw a black filled box to clear the image.
     draw.rectangle((0, 0, oled.width, oled.height), outline=0, fill=0)
     # Pi Stats Display
+    habilita_back()  
     draw.text((0, 0), f"Server:{ip.ip_serv}", font=font, fill=255)
     Modo_trab(modo_trab)
     draw.text((62, 16), modo_text, font=font, fill=255)
-    habilita_back()   
+     
     # Display image
     # Display image
     draw.rectangle((90, 16, oled.width, oled.height), outline=0, fill=0)
