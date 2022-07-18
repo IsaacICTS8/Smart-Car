@@ -33,10 +33,11 @@ StaticJsonDocument<1600> doc1;
 
 long int  leds = 0,leds_ant=0,leds_inv=0,leds_dir=0;
 int pisca = 0,controle_led=0;
+int entra_mode2 = 0;
 
 // Variaveis do temporizador
 unsigned long previousMillis = 0;
-unsigned int period = 2000; //2000 ms = 2s
+unsigned int period = 500; //2000 ms = 2s
 
 byte data;
 //byte ledArray[10];
@@ -52,6 +53,9 @@ byte ledArray_3[10];
 byte ledArray_4[10];
 byte ledArray_5[10];
 byte ledArray_6[10];
+
+int carrinho,prateleira,id_LED,command,modo,atualiza_carrinho = 0;
+
 
 enum Commands{
   Apaga,
@@ -198,6 +202,7 @@ void setup()
   DynamicJsonDocument doc(capacity);
   Serial.println("Iniciando Conexão com servidor");               
   delay(500); 
+  state = InitState;
 }
 void Consulta()
 {
@@ -299,19 +304,7 @@ void Conexao()
                 ledMatrix[5][1] = Memoria.andar_51;
                 ledMatrix[5][0] = Memoria.andar_50;
 
-
                 updateShiftRegister(ledMatrix);
-                //Serial.println(Memoria.andar_14);
-                /*0 int i;
-                 int j;
-                 for(i=0; i<FloorNum; i++) {
-                  for(j=0; j<ShiftRegNum; j++) {
-                      ledMatrix[i][j] = payload[i][j];
-                    }
-                  }
-                 while(1){
-
-                 }*/
                 }
           }
    }
@@ -321,6 +314,8 @@ void Conexao()
 
 void loop() 
 {
+   
+  //state = WaitState;
   switch (state)
   {
     case (InitState):
@@ -329,14 +324,15 @@ void loop()
       {
       SetAllLed();
       updateShiftRegister(ledMatrix);
-      delay(1000);
+      delay(500);
       ClearAllLed();
       updateShiftRegister(ledMatrix);
-       delay(1000);  
+       delay(500);  
       }
       SetAllLed();
       updateShiftRegister(ledMatrix);
-     
+      Serial.println("Iniciou");
+       
       /* while(1){
           Serial.println("teste");
           SetAllLed();
@@ -352,19 +348,30 @@ void loop()
 
     case (WaitState):
     {
-      Serial.println(".");
-      unsigned long currentMillis = millis(); 
+      //Serial.println(".");
+      //ledMatrix[0][0] = 15;
+      //2[1][0] = 15;
+      //ledMatrix[2][0] = 15;
+      //ledMatrix[3][0] = 15;
+      //ledMatrix[4][0] = 15;
+      
+            
+     /// Serial.println(ledMatrix[3][0]);
+      updateShiftRegister(ledMatrix);
+       unsigned long currentMillis = millis(); 
       if (currentMillis - previousMillis > period) { // interval passed?
         previousMillis = currentMillis; // save the last time
-        Serial.println("Connect");
-        if(IncomingCommand.id_mode == 2){ // Modo de Producao
+        ///Serial.println("Connect");
+        if((IncomingCommand.id_mode == 2)&&(entra_mode2 == 0)){ // Modo de Producao
                 Serial.println("Entrou no Modo 2.");
                  Consulta();
                   Conexao();
-                  IncomingCommand.id_mode = 0;
-                  break;  
+                  entra_mode2 = 1;
+                  //IncomingCommand.id_mode = 0;
+                 // break;  
                 }
-        if ((WiFi.status() == WL_CONNECTED)) { //Verifica o status da conexão
+        if ((WiFi.status() == WL_CONNECTED)) 
+        { //Verifica o status da conexão
           HTTPClient http;
           http.begin("http://192.168.1.2/api"); // IP do servidor
           int httpCode = http.GET();              // Faz a requisição
@@ -374,41 +381,48 @@ void loop()
               if(sizeof(payload) > 0) {
                 newCommand = true;
                 IncomingCommand = resultOfGet(payload);
-                Serial.println(IncomingCommand.id_carrinho);
-                Serial.println(IncomingCommand.id_prateleira);
-                Serial.println(IncomingCommand.id_LED);
-                Serial.println(IncomingCommand.command);
-                Serial.println(IncomingCommand.id_mode);
-               //delay(1000);
-                if(IncomingCommand.id_mode == 1){
-                  ClearAllLed();
-                  updateShiftRegister(ledMatrix);
-                  http.end(); 
-                  break;  
+
+                if((carrinho != IncomingCommand.id_carrinho)||(id_LED !=  IncomingCommand.id_LED)||(prateleira != IncomingCommand.id_prateleira)||(command != IncomingCommand.command)||( modo != IncomingCommand.id_mode))
+                {
+                carrinho = IncomingCommand.id_carrinho;
+                prateleira = IncomingCommand.id_prateleira;
+                id_LED = IncomingCommand.id_LED;
+                command = IncomingCommand.command;
+                modo = IncomingCommand.id_mode;
+                Serial.println(carrinho);
+                Serial.println(prateleira);
+                Serial.println(id_LED);
+                Serial.println(command);
+                Serial.println( modo);
+                atualiza_carrinho = 1;
+                entra_mode2 = 0;
                 }
 
-                if(IncomingCommand.command == Acende ) { // Comando Acende LED
-                  state = LedOnState;
-                  http.end(); 
-                  break;
+
+                if (atualiza_carrinho == 1)
+                {
+                  atualiza_carrinho = 0;
+                  if(IncomingCommand.id_mode == 1){
+                    ClearAllLed();
+                    updateShiftRegister(ledMatrix);
+                    http.end(); 
+                    break;  
+                  }
+
+                  if(IncomingCommand.command == Acende ) { // Comando Acende LED
+                    state = LedOnState;
+                    http.end(); 
+                    break;
+                  }
+
+                  if(IncomingCommand.command == Apaga) {  // Comando Apaga LED
+                    state = LedOffState;
+                    http.end(); 
+                    break;
+                  }
                 }
 
-                if(IncomingCommand.command == Apaga) {  // Comando Apaga LED
-                  state = LedOffState;
-                  http.end(); 
-                  break;
-                }
-
-                if(IncomingCommand.command == InitPisca ) { // Comando inicia pisca LED
-                  state = BlinkOnState;
-                  http.end(); 
-                  break;
-                }
-                if(IncomingCommand.command == EndPisca) {  // Comando para de piscar LED
-                  state = BlinkOffState;
-                  http.end(); 
-                  break;
-                }
+              
               }  
           }
           else {
@@ -418,29 +432,30 @@ void loop()
         break;
         }
       }
+      
     }
     break;  
 
     case (LedOnState):
     {
+      for(int cont=0;cont<3;cont++)
+      {
       SetLed(IncomingCommand.id_LED, IncomingCommand.id_prateleira);
-      
+     // updateShiftRegister(ledMatrix);
+      }
       updateShiftRegister(ledMatrix);
-      
-      
-     
-
       state = WaitState;
-      
     }
     break;
 
     case (LedOffState):
     {
+      for(int cont=0;cont<3;cont++)
+      {
       ClearLed(IncomingCommand.id_LED, IncomingCommand.id_prateleira);
-      
+      }
+
       updateShiftRegister(ledMatrix);
-      
       state = WaitState;
      
     }
@@ -510,62 +525,68 @@ void SetLed(int led, int floor)
 // Zera o bit referente ao LED que deve ser apagado //
 void ClearLed(int led, int floor)
 {
-
+   byte r = 0;
  
   if(led < 41) {
     if(led < 9) {
       //ledMatrix[floor][0] = ledMatrix[floor][0] & (0<<(led-1));
-      ledMatrix[floor][0] = bitClear(ledMatrix[floor][0],(led-1));
+      r = bitClear(ledMatrix[floor][0],(led-1));
+     ledMatrix[floor][0] = r;
       return;
     }
     else if(led < 17){
       //ledMatrix[floor][1] = ledMatrix[floor][1] & (0<<(led-9));
-      ledMatrix[floor][1] = bitClear(ledMatrix[floor][1],(led-9));
+      r = bitClear(ledMatrix[floor][1],(led-9));
+      ledMatrix[floor][1] = r;
       return;
     }
     else if(led < 25){
       //ledMatrix[floor][2] = ledMatrix[floor][2] & (0<<(led-17));
-      ledMatrix[floor][2] = bitClear(ledMatrix[floor][2],(led-17));
+      r = bitClear(ledMatrix[floor][2],(led-17));
+      ledMatrix[floor][2] = r;
       return;
     }
     else if(led < 33){
       //ledMatrix[floor][3] = ledMatrix[floor][3] & (0<<(led-25));
-      ledMatrix[floor][3] = bitClear(ledMatrix[floor][3],(led-25));
+      r = bitClear(ledMatrix[floor][3],(led-25));
+      ledMatrix[floor][3] = r;
       return;
     }
     else {
       //ledMatrix[floor][4] = ledMatrix[floor][4] & (0<<(led-33));
-      ledMatrix[floor][4] = bitClear(ledMatrix[floor][4],(led-33));
+      r = bitClear(ledMatrix[floor][4],(led-33));
+      ledMatrix[floor][4] = r;
       return;
     }
   }
   else {
     if(led < 49) {
       //ledMatrix[floor][5] = ledMatrix[floor][5] & (0<<(led-41));
-      ledMatrix[floor][5] = bitClear(ledMatrix[floor][5],(led-41));
+      r = bitClear(ledMatrix[floor][5],(led-41));
+      ledMatrix[floor][5] = r;
     }
     else if(led < 57){
       //ledMatrix[floor][6] = ledMatrix[floor][6] & (0<<(led-49));
-      ledMatrix[floor][6] = bitClear(ledMatrix[floor][6],(led-49));
+      r = bitClear(ledMatrix[floor][6],(led-49));
+      ledMatrix[floor][6] = r;
     }
     else if(led < 65){
       //ledMatrix[floor][7] = ledMatrix[floor][7] & (0<<(led-57));
-      ledMatrix[floor][7] = bitClear(ledMatrix[floor][7],(led-57));
+      r = bitClear(ledMatrix[floor][7],(led-57));
+      ledMatrix[floor][7] = r;
     }
     else if(led < 73){
       //ledMatrix[floor][8] = ledMatrix[floor][8] & (0<<(led-65));
-      ledMatrix[floor][8] = bitClear(ledMatrix[floor][8],(led-65));
+      r = bitClear(ledMatrix[floor][8],(led-65));
+      ledMatrix[floor][8] = r;
     }
     else {
       //ledMatrix[floor][9] = ledMatrix[floor][9] & (0<<(led-73));
-      ledMatrix[floor][9] = bitClear(ledMatrix[floor][9],(led-73));
+      r = bitClear(ledMatrix[floor][9],(led-73));
+      ledMatrix[floor][9] = r;
     }
   }
 }
-
-
-
-
 
 // Seleciona todos os Leds para serem acesos //
 void SetAllLed()
@@ -689,52 +710,97 @@ PacketMem resultOfGet1(String msg)
   return(packet);
 }
 
-
-
-
-
-void updateShiftRegister(byte ledMatrix[FloorNum][ShiftRegNum]) 
+void updateShiftRegister(byte ledMatrix[FloorNum][ShiftRegNum ]) 
 {
-  int i;
+  int i =0;
   int j;
-  digitalWrite(latchPin_SIPO, LOW);
-  delay(50);
+
+ /*
+  digitalWrite(dataPin_outclk, LOW);  // Alteração de Código
+   digitalWrite(clockPin_SIPO, LOW);
+  delayMicroseconds(100);
+  digitalWrite(clockPin_SIPO, HIGH); // Alteração no código
+   delayMicroseconds(10);*/
+  digitalWrite(dataPin_outclk, HIGH);  // Alteração de Código
+  /* digitalWrite(clockPin_SIPO, LOW);
+  delayMicroseconds(100);
+  digitalWrite(clockPin_SIPO, HIGH); // Alteração no código
+   delayMicroseconds(10);*/
+   digitalWrite(latchPin_SIPO, LOW);
+   digitalWrite(clockPin_SIPO, LOW); 
+   digitalWrite(dataPin_SIPO4, LOW); 
+   delayMicroseconds(50);
+        
   for (i=0;i<ShiftRegNum ;i++){
+ // for (i=0;i<1;i++)
+  
     
     // if LSBFISRT
     for(j=0; j<8; j++) {
+      
       digitalWrite(clockPin_SIPO, LOW);
-      delay(5);
+      delayMicroseconds(30);
+      //digitalWrite(dataPin_SIPO1, ((ledMatrix[0][i])>>j) % 2);
+      digitalWrite(dataPin_SIPO1, bitRead(ledMatrix[0][i],j));
+      //delayMicroseconds(5);
+      //digitalWrite(dataPin_SIPO2, (ledMatrix[1][i]>>j) % 2);
+      digitalWrite(dataPin_SIPO2, bitRead(ledMatrix[1][i],j));
+      //digitalWrite(dataPin_SIPO3, (ledMatrix[2][i]>>j) % 2);
+      digitalWrite(dataPin_SIPO3, bitRead(ledMatrix[2][i],j));
+      //digitalWrite(dataPin_SIPO1, (ledMatrix[3][i]>>j) % 2);
+      //digitalWrite(dataPin_SIPO4, (ledMatrix[3][i]>>j) % 2);
+
+      digitalWrite(dataPin_SIPO4, bitRead(ledMatrix[3][i],j) );
       
-      digitalWrite(dataPin_SIPO1, ((ledMatrix[0][i])>>j) % 2);
-      digitalWrite(dataPin_SIPO2, (ledMatrix[1][i]>>j) % 2);
-      digitalWrite(dataPin_SIPO3, (ledMatrix[2][i]>>j) % 2);
-      digitalWrite(dataPin_SIPO4, (ledMatrix[3][i]>>j) % 2);
-      digitalWrite(dataPin_SIPO5, (ledMatrix[4][i]>>j) % 2);
-      digitalWrite(dataPin_SIPO6, (ledMatrix[5][i]>>j) % 2); 
-     // delay(1);
-        
+      //digitalWrite(dataPin_SIPO5, (ledMatrix[4][i]>>j) % 2);
+      digitalWrite(dataPin_SIPO5, bitRead(ledMatrix[4][i],j));
       
-      digitalWrite(clockPin_SIPO, HIGH); // Alteração no código
-      delay(5);
+      //digitalWrite(dataPin_SIPO6, (ledMatrix[5][i]>>j) % 2);
+      digitalWrite(dataPin_SIPO6, bitRead(ledMatrix[5][i],j)); 
+      //delayMicroseconds(200);
+      delayMicroseconds(30);
+      digitalWrite(clockPin_SIPO, HIGH);
+      if((j==7)&&(i==ShiftRegNum - 1))
+      {
+      digitalWrite(latchPin_SIPO, HIGH);
+      }
+      delayMicroseconds(80);
+      digitalWrite(clockPin_SIPO, LOW);
+      delayMicroseconds(80); 
+      if((j==7)&&(i== ShiftRegNum - 1 ))
+      {
+
+        digitalWrite(latchPin_SIPO, LOW);
+        digitalWrite(dataPin_SIPO4, LOW);
+      }
+         
+    
     }
      
 
-    // if MSBFISRT
-    // for(i=7; i<=0; i--) {
-    //  digitalWrite(clockPin, LOW);
-    
-    //  digitalWrite(dataPin1, (led1>>i) % 2);
-    //  digitalWrite(dataPin2, (led2>>i) % 2);
-    //  digitalWrite(dataPin3, (led3>>i) % 2);
-    //  digitalWrite(dataPin4, (led4>>i) % 2);
-    //  digitalWrite(dataPin5, (led5>>i) % 2);
-    //  digitalWrite(dataPin6, (led6>>i) % 2);    
-
-    //  digitalWrite(clockPin, LOW);
-    // }
   }
+     
 
-  digitalWrite(latchPin_SIPO, HIGH);
+        
+        /*digitalWrite(clockPin_SIPO, LOW); // Alteração no código
+        delayMicroseconds(80);
+        digitalWrite(latchPin_SIPO, HIGH);
+        digitalWrite(clockPin_SIPO, HIGH);
+        delayMicroseconds(80);
+        digitalWrite(latchPin_SIPO, LOW);
+        digitalWrite(clockPin_SIPO, LOW); // Alteração no código
+        delayMicroseconds(80);
+         */
+        
+       
+        
+     
+    
+    //  digitalWrite(clockPin_SIPO, HIGH);
+      
+      delay(10);
+    
+     
+  
   
 }

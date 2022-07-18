@@ -143,7 +143,7 @@ app.get("/consulta/:namecar",(req,res) =>{
     
     data['data']['id_LED'] = 0;
     data['data']['comando'] = 0;
-    data['data']['modo'] = 0;
+    //data['data']['modo'] = 0;
             
    init_dados();
     
@@ -205,7 +205,7 @@ app.get("/connect",function(req,res){
   //Rota que inicializa o abastecimento do carrinho
 app.get("/inicio/:namecar", (req,res) =>{ 
     var nome_carro = req.params.namecar;
-    data['data']['modo'] = 0;
+    //data['data']['modo'] = 0;
     updateOrCreate(Armazena,{name_carrinho:nome_carro},{name_carrinho:nome_carro,modo_carrinho: '0'});
     res.send("ok");
 
@@ -214,7 +214,7 @@ app.get("/inicio/:namecar", (req,res) =>{
   app.get("/reseta/:namecar", (req,res) =>{ 
     var nome_carro = req.params.namecar;
     data['data']['modo'] = 0;
-    updateOrCreate(Armazena,{name_carrinho:nome_carro},{name_carrinho:nome_carro,modo_carrinho: '0'});
+    updateOrCreate(Armazena,{name_carrinho:nome_carro},{name_carrinho:nome_carro});
     DeleteAll_reg(C001,{name_car : nome_carro});     
     res.send("ok");
 
