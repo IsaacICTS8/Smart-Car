@@ -154,6 +154,7 @@ app.get("/consulta/:namecar",(req,res) =>{
         {
             
             retorno = buscar
+            console.log(retorno)
             for (const type of retorno) { 
                atualiza_memoria(type.posicao, type.andar);
             }
@@ -251,6 +252,7 @@ app.get("/confirmar/:posicao_car?,:serial?",(req,res) => {
     }).then(buscar =>{
         if(buscar != undefined)
         {
+            buscar.pedido=1
             if ((buscar.pedido == '1')&&(buscar.posicao == resposta))
             {
                 data['data']['id_prateleira'] = buscar.andar;
@@ -304,7 +306,7 @@ app.get("/perguntar",function(req,res){
 });
 
 
-app.listen(3000,function(erro){
+app.listen(80,function(erro){
     if(erro){
         console.log("Ocorreu um erro!");
     }else{

@@ -208,7 +208,7 @@ void Consulta()
 {
   if ((WiFi.status() == WL_CONNECTED)) { //Verifica o status da conexão
           HTTPClient http;
-          http.begin("http://192.168.1.2:3000/consulta/C001"); // IP do servidor
+          http.begin("http://192.168.1.2/consulta/C001"); // IP do servidor
           int httpCode = http.GET();              // Faz a requisição
           if (httpCode > 0) { //verifica código de retorno
             String load = http.getString();
@@ -228,7 +228,7 @@ void Conexao()
 {
   if ((WiFi.status() == WL_CONNECTED)) { //Verifica o status da conexão
           HTTPClient http;
-          http.begin("http://192.168.1.2:3000/connect"); // IP do servidor
+          http.begin("http://192.168.1.2/connect"); // IP do servidor
           int httpCode = http.GET();              // Faz a requisição
           if (httpCode > 0) { //verifica código de retorno
             String load = http.getString();
@@ -373,7 +373,7 @@ void loop()
         if ((WiFi.status() == WL_CONNECTED)) 
         { //Verifica o status da conexão
           HTTPClient http;
-          http.begin("http://192.168.1.2:3000/api"); // IP do servidor
+          http.begin("http://192.168.1.2/api"); // IP do servidor
           int httpCode = http.GET();              // Faz a requisição
           if (httpCode > 0) { //verifica código de retorno
             String payload = http.getString();
