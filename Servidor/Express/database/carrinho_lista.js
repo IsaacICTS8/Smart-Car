@@ -1,6 +1,9 @@
 const Sequelize = require('sequelize');
 const conection = require('./database');
-const Lista_posicao = conection.define("C001",{
+ 
+// Esse parametro precisa ser dinamico
+
+const Lista_posicao = conection.define("movimentacao_carrinho",{
     name_car:{
         type: Sequelize.TEXT,
         allowNull: false
@@ -24,7 +27,12 @@ const Lista_posicao = conection.define("C001",{
     pedido :{
         type: Sequelize.STRING,
         allowNull: false
+    },
+    deletedAt :{
+        type: Sequelize.TIME,
+        allowNull: true
     }
+    
 
     
 }, { freezeTableName: true });

@@ -1,6 +1,6 @@
-#   IP - Servidor de Câmeras
+#   IP - Servidor 
 ip_serv   = "192.168.1.2"
-#   Porta - Servidor de Câmeras
+#   Porta 
 port_serv = 80
-#   Usuário das Câmeras
+#   ESSE PARAMETRO PRECISA SER DINAMICO
 id_carrinho = "C001"

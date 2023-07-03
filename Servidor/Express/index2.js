@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 
 const connection = require("./database/database");
 const Armazena = require("./database/armazena");
-const C001 = require("./database/carrinho_lista");
+const movimentacao_carrinho = require("./database/carrinho_lista");
 
 const requestIp = require('request-ip');
 const res = require("express/lib/response");
@@ -129,8 +129,7 @@ var memoria =
 app.get("/api",function(req,res){
    // res.send(customerWalletsDB);
    
-   try {
-   
+   try {   
     res.status(200).jsonp(data);
    } catch (error) {
        console.log(error);
@@ -148,8 +147,8 @@ app.get("/consulta/:namecar",(req,res) =>{
 
    init_dados();
 
-    C001.findAll(
-        {raw :true, where: {name_car : req.params.namecar}, order:[['posicao','ASC']]
+   movimentacao_carrinho.findAll(
+        {raw :true, where: {name_car : req.params.namecar, deletedAt : null}, order:[['posicao','ASC']]
     }).then(buscar =>{
         if(buscar != undefined)
         {
@@ -172,9 +171,9 @@ app.post("/solicitar",(req,res) =>{
     serial = serial1.replace(/[&\/\\#,+()$~%.'":*?<>{}_`´-]/g,'');
     console.log(nome_carro)
     console.log(serial)
-    updateOrCreate(C001,{name_car : nome_carro,serial_comp : serial},{pedido: '1'});
+    updateOrCreate(movimentacao_carrinho,{name_car : nome_carro,serial_comp : serial},{pedido: '1'});
 
-    C001.findOne(
+    movimentacao_carrinho.findOne(
         { where : {name_car : nome_carro,serial_comp : serial}
     }).then(buscar =>{
         if(buscar != undefined)
@@ -219,7 +218,7 @@ app.get("/inicio/:namecar", (req,res) =>{
     var nome_carro = req.params.namecar;
     data['data']['modo'] = 0;
     updateOrCreate(Armazena,{name_carrinho:nome_carro},{name_carrinho:nome_carro,modo_carrinho: '0'});
-    DeleteAll_reg(C001,{name_car : nome_carro});
+    DeleteAll_reg(movimentacao_carrinho,{name_car : nome_carro});
     res.send("ok");
 
 });
@@ -256,7 +255,7 @@ app.get("/confirmar/",(req,res) => {
     console.log("words : ", words)
     console.log("Serial comp : ", serial)
 
-    C001.findOne(
+    movimentacao_carrinho.findOne(
         { where : {name_car : name_carrinho,serial_comp : serial}
     }).then(buscar =>{
         console.log("resposta : ", resposta)
@@ -270,7 +269,7 @@ app.get("/confirmar/",(req,res) => {
                 data['data']['id_prateleira'] = buscar.andar;
                 data['data']['id_LED'] = buscar.posicao;
                 data['data']['comando'] = 0;
-                Delete_reg(C001,{name_car : name_carrinho,serial_comp : serial},{pedido: '0'});
+                Delete_reg(movimentacao_carrinho,{name_car : name_carrinho,serial_comp : serial},{pedido: '0'});
                 res.send("Componente Solicitado");
             }else{
                 res.send("Não Solicitado");
@@ -288,14 +287,14 @@ app.post("/control/:serial?,:posicao_car?",(req,res) => {
     var ip_req = requestIp.getClientIp(req);
     var id_local = '';
     format_dados_banco(posicao_comp);
-    name_carrinho = posicao_comp[0]+posicao_comp[1]+posicao_comp[2]+posicao_comp[3];
+    name_carrinho = posicao_comp[0]+posicao_comp[1]+posicao_comp[2]+posicao_comp[3];   // O Qrcode decide o nome do carro
     ip_req = ip_req.toString().replace('::ffff:', '');
     module.exports = name_carrinho;
     data['data']['modo'] = 0;
         //Localiza o carrinho
     updateOrCreate(Armazena,{name_carrinho:name_carrinho},{name_carrinho:name_carrinho,modo_carrinho: '0'});
     res.send("ok")
-    C001.create({
+    movimentacao_carrinho.create({
         name_car : name_carrinho,
         serial_comp: serial,
         andar : andar_carrinho,
@@ -317,6 +316,29 @@ app.get("/perguntar",function(req,res){
     res.render("perguntar");
 });
 
+// Consulta o banco de dados para atualizar a mémoria do carrinho
+app.post("/search", (req, res) => {
+    var search = req.query.search;
+  
+    movimentacao_carrinho.findAll({
+      raw: true,
+      where: { serial_comp: search, deletedAt: null}, order: [['posicao', 'ASC']]
+    }).then(buscar => {
+      if (buscar.length > 0) {
+        res.status(200).json(buscar);
+
+        // Funcao que atualiza todas as memorias de todos os carrinhos
+
+        find = []
+    
+        res.status(200).json({ "Status": "Registros Atualizados" });
+
+      } else {
+        res.status(200).json({ "Status": "Nao encontrado" });
+      }
+    });
+  });
+  
 
 app.listen(80,function(erro){
     if(erro){
@@ -477,273 +499,117 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
     console.log(num_andar + " , " + num_posicao);
     if(num_posicao >= 73){
         nr_pos = num_posicao - 73;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p9 = bitClear(memoria.posicao.floor0.p9,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p9 = bitClear(memoria.posicao.floor1.p9,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p9 = bitClear(memoria.posicao.floor2.p9,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p9 = bitClear(memoria.posicao.floor3.p9,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p9 = bitClear(memoria.posicao.floor4.p9,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p9 = bitClear(memoria.posicao.floor5.p9,nr_pos);
-        }
+
+        // Checa os leds [80-73] de todos os andares 
+
+        if(num_andar == 0){memoria.posicao.floor0.p9 = bitClear(memoria.posicao.floor0.p9,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p9 = bitClear(memoria.posicao.floor1.p9,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p9 = bitClear(memoria.posicao.floor2.p9,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p9 = bitClear(memoria.posicao.floor3.p9,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p9 = bitClear(memoria.posicao.floor4.p9,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p9 = bitClear(memoria.posicao.floor5.p9,nr_pos);}
     }
+
+       // Checa os leds [72-65] de todos os andares 
+
     if((num_posicao <= 72)&&(num_posicao >= 65)){
         nr_pos = num_posicao - 65;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p8 = bitClear(memoria.posicao.floor0.p8,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p8 = bitClear(memoria.posicao.floor1.p8,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p8 = bitClear(memoria.posicao.floor2.p8,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p8 = bitClear(memoria.posicao.floor3.p8,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p8 = bitClear(memoria.posicao.floor4.p8,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p8 = bitClear(memoria.posicao.floor5.p8,nr_pos);
-        }
+        if(num_andar == 0){memoria.posicao.floor0.p8 = bitClear(memoria.posicao.floor0.p8,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p8 = bitClear(memoria.posicao.floor1.p8,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p8 = bitClear(memoria.posicao.floor2.p8,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p8 = bitClear(memoria.posicao.floor3.p8,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p8 = bitClear(memoria.posicao.floor4.p8,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p8 = bitClear(memoria.posicao.floor5.p8,nr_pos);}
     }
+
+    // Checa os leds [64-57] de todos os andares 
+
     if((num_posicao <= 64)&&(num_posicao >= 57)){
         nr_pos = num_posicao - 57;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p7 = bitClear(memoria.posicao.floor0.p7,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p7 = bitClear(memoria.posicao.floor1.p7,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p7 = bitClear(memoria.posicao.floor2.p7,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p7 = bitClear(memoria.posicao.floor3.p7,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p7 = bitClear(memoria.posicao.floor4.p7,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p7 = bitClear(memoria.posicao.floor5.p7,nr_pos);
-        }
+        if(num_andar == 0){memoria.posicao.floor0.p7 = bitClear(memoria.posicao.floor0.p7,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p7 = bitClear(memoria.posicao.floor1.p7,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p7 = bitClear(memoria.posicao.floor2.p7,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p7 = bitClear(memoria.posicao.floor3.p7,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p7 = bitClear(memoria.posicao.floor4.p7,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p7 = bitClear(memoria.posicao.floor5.p7,nr_pos);}
     }
+
+    // Checa os leds [56-49] de todos os andares
+
     if((num_posicao <= 56)&&(num_posicao >= 49)){
         nr_pos = num_posicao - 49;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p6 = bitClear(memoria.posicao.floor0.p6,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p6 = bitClear(memoria.posicao.floor1.p6,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p6 = bitClear(memoria.posicao.floor2.p6,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p6 = bitClear(memoria.posicao.floor3.p6,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p6 = bitClear(memoria.posicao.floor4.p6,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p6 = bitClear(memoria.posicao.floor5.p6,nr_pos);
-        }
+        if(num_andar == 0){memoria.posicao.floor0.p6 = bitClear(memoria.posicao.floor0.p6,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p6 = bitClear(memoria.posicao.floor1.p6,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p6 = bitClear(memoria.posicao.floor2.p6,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p6 = bitClear(memoria.posicao.floor3.p6,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p6 = bitClear(memoria.posicao.floor4.p6,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p6 = bitClear(memoria.posicao.floor5.p6,nr_pos);}
     }
     if((num_posicao <= 48)&&(num_posicao >= 41)){
         nr_pos = num_posicao - 41;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p5 = bitClear(memoria.posicao.floor0.p5,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p5 = bitClear(memoria.posicao.floor1.p5,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p5 = bitClear(memoria.posicao.floor2.p5,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p5 = bitClear(memoria.posicao.floor3.p5,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p5 = bitClear(memoria.posicao.floor4.p5,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p5 = bitClear(memoria.posicao.floor5.p5,nr_pos);
-        }
+        if(num_andar == 0){memoria.posicao.floor0.p5 = bitClear(memoria.posicao.floor0.p5,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p5 = bitClear(memoria.posicao.floor1.p5,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p5 = bitClear(memoria.posicao.floor2.p5,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p5 = bitClear(memoria.posicao.floor3.p5,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p5 = bitClear(memoria.posicao.floor4.p5,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p5 = bitClear(memoria.posicao.floor5.p5,nr_pos);}
     }
     if((num_posicao <= 40)&&(num_posicao >= 33)){
         nr_pos = num_posicao - 33;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p4 = bitClear(memoria.posicao.floor0.p4,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p4 = bitClear(memoria.posicao.floor1.p4,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p4 = bitClear(memoria.posicao.floor2.p4,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p4 = bitClear(memoria.posicao.floor3.p4,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p4 = bitClear(memoria.posicao.floor4.p4,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p4 = bitClear(memoria.posicao.floor5.p4,nr_pos);
-        }
+        if(num_andar == 0){memoria.posicao.floor0.p4 = bitClear(memoria.posicao.floor0.p4,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p4 = bitClear(memoria.posicao.floor1.p4,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p4 = bitClear(memoria.posicao.floor2.p4,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p4 = bitClear(memoria.posicao.floor3.p4,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p4 = bitClear(memoria.posicao.floor4.p4,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p4 = bitClear(memoria.posicao.floor5.p4,nr_pos);}
     }
     if((num_posicao <= 32)&&(num_posicao >= 25)){
         nr_pos = num_posicao - 25;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p3 = bitClear(memoria.posicao.floor0.p3,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p3 = bitClear(memoria.posicao.floor1.p3,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p3 = bitClear(memoria.posicao.floor2.p3,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p3 = bitClear(memoria.posicao.floor3.p3,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p3 = bitClear(memoria.posicao.floor4.p3,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p3 = bitClear(memoria.posicao.floor5.p3,nr_pos);
-        }
+
+        // Checa os leds [25-32] de todos os andares
+
+        if(num_andar == 0){memoria.posicao.floor0.p3 = bitClear(memoria.posicao.floor0.p3,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p3 = bitClear(memoria.posicao.floor1.p3,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p3 = bitClear(memoria.posicao.floor2.p3,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p3 = bitClear(memoria.posicao.floor3.p3,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p3 = bitClear(memoria.posicao.floor4.p3,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p3 = bitClear(memoria.posicao.floor5.p3,nr_pos);}
     }
     if((num_posicao <= 24)&&(num_posicao >= 17)){
         nr_pos = num_posicao - 17;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p2= bitClear(memoria.posicao.floor0.p2,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p2 = bitClear(memoria.posicao.floor1.p2,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p2 = bitClear(memoria.posicao.floor2.p2,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p2 = bitClear(memoria.posicao.floor3.p2,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p2 = bitClear(memoria.posicao.floor4.p2,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p2 = bitClear(memoria.posicao.floor5.p2,nr_pos);
-        }
+
+        // Checa os leds [17-24] de todos os andares
+
+        if(num_andar == 0){memoria.posicao.floor0.p2= bitClear(memoria.posicao.floor0.p2,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p2 = bitClear(memoria.posicao.floor1.p2,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p2 = bitClear(memoria.posicao.floor2.p2,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p2 = bitClear(memoria.posicao.floor3.p2,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p2 = bitClear(memoria.posicao.floor4.p2,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p2 = bitClear(memoria.posicao.floor5.p2,nr_pos);}
     }
     if((num_posicao <= 16)&&(num_posicao >= 9)){
         nr_pos = num_posicao - 9;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p1 = bitClear(memoria.posicao.floor0.p1,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p1 = bitClear(memoria.posicao.floor1.p1,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p1 = bitClear(memoria.posicao.floor2.p1,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p1 = bitClear(memoria.posicao.floor3.p1,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p1 = bitClear(memoria.posicao.floor4.p1,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p1 = bitClear(memoria.posicao.floor5.p1,nr_pos);
-        }
+
+        // Checa os leds [9-16] de todos os andares
+
+        if(num_andar == 0){memoria.posicao.floor0.p1 = bitClear(memoria.posicao.floor0.p1,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p1 = bitClear(memoria.posicao.floor1.p1,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p1 = bitClear(memoria.posicao.floor2.p1,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p1 = bitClear(memoria.posicao.floor3.p1,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p1 = bitClear(memoria.posicao.floor4.p1,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p1 = bitClear(memoria.posicao.floor5.p1,nr_pos);}
     }
     if((num_posicao <= 8)&&(num_posicao >= 1)){
         nr_pos = num_posicao - 1;
-        if(num_andar == 0)
-        {
-        memoria.posicao.floor0.p0 = bitClear(memoria.posicao.floor0.p0,nr_pos);
-        }
-        if(num_andar == 1)
-        {
-        memoria.posicao.floor1.p0 = bitClear(memoria.posicao.floor1.p0,nr_pos);
-        }
-        if(num_andar == 2)
-        {
-        memoria.posicao.floor2.p0 = bitClear(memoria.posicao.floor2.p0,nr_pos);
-        }
-        if(num_andar == 3)
-        {
-        memoria.posicao.floor3.p0 = bitClear(memoria.posicao.floor3.p0,nr_pos);
-        }
-        if(num_andar == 4)
-        {
-        memoria.posicao.floor4.p0 = bitClear(memoria.posicao.floor4.p0,nr_pos);
-        }
-        if(num_andar == 5)
-        {
-        memoria.posicao.floor5.p0 = bitClear(memoria.posicao.floor5.p0,nr_pos);
-        }
+
+        // Checa os leds [1-8] de todos os andares
+
+        if(num_andar == 0){memoria.posicao.floor0.p0 = bitClear(memoria.posicao.floor0.p0,nr_pos);}
+        if(num_andar == 1){memoria.posicao.floor1.p0 = bitClear(memoria.posicao.floor1.p0,nr_pos);}
+        if(num_andar == 2){memoria.posicao.floor2.p0 = bitClear(memoria.posicao.floor2.p0,nr_pos);}
+        if(num_andar == 3){memoria.posicao.floor3.p0 = bitClear(memoria.posicao.floor3.p0,nr_pos);}
+        if(num_andar == 4){memoria.posicao.floor4.p0 = bitClear(memoria.posicao.floor4.p0,nr_pos);}
+        if(num_andar == 5){memoria.posicao.floor5.p0 = bitClear(memoria.posicao.floor5.p0,nr_pos);}
     }
    //console.log(nr_pos +" , " + num_andar);
 
@@ -786,13 +652,10 @@ async function Delete_reg (model, where, newItem) {
     return true;
 }
 
-async function DeleteAll_reg (model, where) {
-    // First try to find the record
-
-    model.destroy({
-       where},
-        {trucate: false}
-    );
-   // const item = await model.destoy({where});
+async function DeleteAll_reg(model, where) {
+    // Atualizar o status da coluna `deletedAt` para a data e hora atual
+    await model.update({ deletedAt: new Date() }, { where });
+  
     return true;
 }
+  

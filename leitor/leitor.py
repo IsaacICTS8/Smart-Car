@@ -2,20 +2,20 @@
 #from multiprocessing import TimeoutError
 #from multiprocessing.pool import ThreadPool
 import time
-import board
-import busio
-import digitalio
+#import board
+#import busio
+#import digitalio
 import http.client
 import requests
 import json
 import config_ip as ip
-from PIL import Image, ImageDraw, ImageFont
-import adafruit_ssd1306
-import subprocess
+#from PIL import Image, ImageDraw, ImageFont
+#import adafruit_ssd1306
+#import subprocess
 
 # Define the Reset Pin
 global draw , modo_trab,modo_text
-oled_reset = digitalio.DigitalInOut(board.D4)
+#oled_reset = digitalio.DigitalInOut(board.D4)
 
 # Display Parameters
 WIDTH = 128
@@ -62,7 +62,6 @@ def habilita_back():
     # Habilita a comunicação com servidor da fabrica
     global conn_back,obj,draw,modo_trab
     cmd = "hostname -I | cut -d\' \' -f1"
-    IP = subprocess.check_output(cmd, shell = True )
     
     try:
         r1 = requests.get(f"http://{ip.ip_serv}:{ip.port_serv}",timeout=1)
@@ -74,11 +73,13 @@ def habilita_back():
             if (datajson['data']['modo'] == 1):
                 modo_trab = 1
                 
-            draw.text((0, 16), "Connect", font=font, fill=255)
+            #draw.text((0, 16), "Connect", font=font, fill=255)
         else :
-            draw.text((0, 16), "No Connect", font=font, fill=255)
+            print("NAO CONECTADO !")
+            #draw.text((0, 16), "No Connect", font=font, fill=255)
     except:
-        draw.text((0, 16), "No Connect", font=font, fill=255)
+        print("DEU ERRO !")
+        #draw.text((0, 16), "No Connect", font=font, fill=255)
 
 def req_cadast(comp1,pos1):
     
@@ -176,53 +177,53 @@ def timeout(seconds):
 
 
 # Use for I2C.
-time.sleep(10)
-i2c = board.I2C()
-oled = adafruit_ssd1306.SSD1306_I2C(WIDTH, HEIGHT, i2c, addr=0x3C, reset=oled_reset)
+time.sleep(2)
+#i2c = board.I2C()
+#oled = adafruit_ssd1306.SSD1306_I2C(WIDTH, HEIGHT, i2c, addr=0x3C, reset=oled_reset)
 
 # Clear display.
-oled.fill(0)
-oled.show()
+#oled.fill(0)
+#oled.show()
 
 # Create blank image for drawing.
 # Make sure to create image with mode '1' for 1-bit color.
-image = Image.new("1", (oled.width, oled.height))
+#image = Image.new("1", (oled.width, oled.height))
 
 # Get drawing object to draw on image.
-draw = ImageDraw.Draw(image)
+#draw = ImageDraw.Draw(image)
 
 # Draw a white background
-draw.rectangle((0, 0, oled.width, oled.height), outline=255, fill=255)
+#draw.rectangle((0, 0, oled.width, oled.height), outline=255, fill=255)
 
-font = ImageFont.truetype('/home/pi/carrinho-inteligente/leitor/PixelOperator.ttf', 16)
+#font = ImageFont.truetype('/home/pi/carrinho-inteligente/leitor/PixelOperator.ttf', 16)
 #font = ImageFont.load_default()
 #modo_trab = 0;
 while True:
 
     # Draw a black filled box to clear the image.
-    draw.rectangle((0, 0, oled.width, oled.height), outline=0, fill=0)
+   # draw.rectangle((0, 0, oled.width, oled.height), outline=0, fill=0)
     # Pi Stats Display
     habilita_back()  
-    draw.text((0, 0), f"Server:{ip.ip_serv}", font=font, fill=255)
+   # draw.text((0, 0), f"Server:{ip.ip_serv}", font=font, fill=255)
     Modo_trab(modo_trab)
-    draw.text((62, 16), modo_text, font=font, fill=255)
+   # draw.text((62, 16), modo_text, font=font, fill=255)
      
     # Display image
     # Display image
-    draw.rectangle((90, 16, oled.width, oled.height), outline=0, fill=0)
-    draw.text((90, 16),"Cod.", font=font, fill=255)
-    oled.image(image)
-    oled.show()
+   # draw.rectangle((90, 16, oled.width, oled.height), outline=0, fill=0)
+   # draw.text((90, 16),"Cod.", font=font, fill=255)
+   # oled.image(image)
+    #oled.show()
     time.sleep(1)
 
     #print(format_dados(posicao.upper
     comp = input("Codigo Componente:")
     comp = serial_format(comp)
-    draw.rectangle((90, 16, oled.width, oled.height), outline=0, fill=0)
+   # draw.rectangle((90, 16, oled.width, oled.height), outline=0, fill=0)
     
-    draw.text((90, 16),"Pos.", font=font, fill=255)
-    oled.image(image)
-    oled.show()
+   # draw.text((90, 16),"Pos.", font=font, fill=255)
+   # oled.image(image)
+  #  oled.show()
     posicao = input("Posição no Carrinho:")
     format_dados(posicao)
     
