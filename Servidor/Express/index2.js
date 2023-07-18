@@ -41,94 +41,49 @@ var posicao_carrinho = "" ; // Informa o posicao do andar no carrinho
 
 
 app.use(express.json(),requestIp.mw())
-const data =
-{
-    "data": {
-        "id_carrinho": 10,
-        "id_prateleira": 0,
-        "id_LED": 80,
-        "comando": 1,
-        "modo" : 0 // Modo : 0 -> Modo de Alimentação ; 1 - > Modo Finalização ; 2 - > Modo Produção
+  
+  // Exibe o objeto JSON resultante
+  var memoria = {
+    "posicao": {}
+  };
+  data = {}
+  var numAndares = 6; // Número total de andaress
+  var numPosicoes = 10; // Número total de posições
+  
+  // Configura os valores para cada andar e posição
+  for (var i = 0; i < numAndares; i++) {
+    var andar = "floor" + (i+1);
+    memoria.posicao[andar] = {};
+    
+    for (var j = 0; j < numPosicoes; j++) {
+      var posicao = "p" + j;
+      memoria.posicao[andar][posicao] = 255; // Define o valor desejado
     }
-
-}
-//Memória do Carrinho
-var memoria =
-{
-    "posicao": {
-        "floor0": { "p0": 255,
-                    "p1": 255,
-                    "p2": 255,
-                    "p3": 255,
-                    "p4": 255,
-                    "p5": 255,
-                    "p6": 255,
-                    "p7": 255,
-                    "p8": 255,
-                    "p9": 255
-                    },
-        "floor1": { "p0": 255,
-                   "p1": 255,
-                   "p2": 255,
-                   "p3": 255,
-                   "p4": 255,
-                   "p5": 255,
-                   "p6": 255,
-                   "p7": 255,
-                   "p8": 255,
-                   "p9": 255
-                   },
-        "floor2": { "p0": 255,
-                    "p1": 255,
-                    "p2": 255,
-                    "p3": 255,
-                    "p4": 255,
-                    "p5": 255,
-                    "p6": 255,
-                    "p7": 255,
-                    "p8": 255,
-                    "p9": 255
-                  },
-        "floor3": {  "p0": 255,
-                    "p1": 255,
-                    "p2": 255,
-                    "p3": 255,
-                    "p4": 255,
-                    "p5": 255,
-                    "p6": 255,
-                    "p7": 255,
-                    "p8": 255,
-                    "p9": 255
-                },
-        "floor4": {  "p0": 255,
-                    "p1": 255,
-                    "p2": 255,
-                    "p3": 255,
-                    "p4": 255,
-                    "p5": 255,
-                    "p6": 255,
-                    "p7": 255,
-                    "p8": 255,
-                    "p9": 255
-                 },
-        "floor5": {  "p0": 255,
-                 "p1": 255,
-                 "p2": 255,
-                 "p3": 255,
-                 "p4": 255,
-                 "p5": 255,
-                 "p6": 255,
-                 "p7": 255,
-                 "p8": 255,
-                 "p9": 255
-              }
-    }
-}
+  }
+  obj = {
+    "idCar": 31,
+    "statusCar": "Produção",
+    "shelfs": [
+      {
+        "idShelfs": 2,
+        "positions": [
+					{
+            "idPosition": 12,
+            "statusLed": 1  
+          },
+					{
+            "idPosition": 10,
+            "statusLed": 1
+          }
+        ]
+      }
+    ]
+  }
 
 //Realiza atualização da memória
 app.get("/api",function(req,res){
    // res.send(customerWalletsDB);
-   
+  
    try {   
     res.status(200).jsonp(data);
    } catch (error) {
@@ -145,17 +100,15 @@ app.get("/consulta/:namecar",(req,res) =>{
     data['data']['comando'] = 0;
     data['data']['modo'] = 0;
 
-   init_dados();
-
    movimentacao_carrinho.findAll(
         {raw :true, where: {name_car : req.params.namecar, deletedAt : null}, order:[['posicao','ASC']]
     }).then(buscar =>{
-        if(buscar != undefined)
+        if(buscar != undefined) 
         {
 
             retorno = buscar
             for (const type of retorno) {
-               atualiza_memoria(type.posicao, type.andar);
+               atualiza_memoria(type.posicao, type.andar,type.name_car);
             }
 
             res.send(buscar);
@@ -164,43 +117,126 @@ app.get("/consulta/:namecar",(req,res) =>{
 
 });
 
-// Rota que faz a solicitação via página
+
+// Rota que faz a solicitação via página (ela retorna uma lista com todas as posições que tem o componente solicitado)
 app.post("/solicitar",(req,res) =>{
     var serial1 = req.body.serial;
     var nome_carro = req.body.namecar;
     serial = serial1.replace(/[&\/\\#,+()$~%.'":*?<>{}_`´-]/g,'');
-    console.log(nome_carro)
-    console.log(serial)
     updateOrCreate(movimentacao_carrinho,{name_car : nome_carro,serial_comp : serial},{pedido: '1'});
 
     movimentacao_carrinho.findOne(
-        { where : {name_car : nome_carro,serial_comp : serial}
+        { where : {name_car : nome_carro,serial_comp : serial, deletedAt:null} // o Null eu alterei
     }).then(buscar =>{
         if(buscar != undefined)
         {
+    
+            //buscar.forEach((item) => {   // Vou adicionar item quando eu puder alterar o firmware
 
+        
             data['data']['id_prateleira'] = buscar.andar;
             data['data']['id_LED'] = buscar.posicao;
             data['data']['comando'] = 1;
             data['data']['modo'] = 3;
-            res.status(200).jsonp(buscar);
             
+           // })
+            res.status(200).jsonp(buscar);
         }else{
-            res.status(400).jsonp("'message' : Componente nao encotrado");
+            res.status(400).jsonp("'message' : Componente nao encontrado");
             //res.redirect("/");
         }
     });
 
 })
 
-//Realiza a leitura da memoria do carrinho
+//Realiza a leitura da memoria do carrinho - ROTA PRINCIPAL
 app.get("/connect",function(req,res){
     // res.send(customerWalletsDB);
 
+if (obj.statusCar === "Produção"){
+  var numAndares = 6; // Número total de andaress
+  var numPosicoes = 10; // Número total de posições
+  
+  // Configura os valores para cada andar e posição
+  for (var i = 0; i < numAndares; i++) {
+    var andar = "floor" + (i+1);
+    memoria.posicao[andar] = {};
+    
+    for (var j = 0; j < numPosicoes; j++) {
+      var posicao = "p" + j;
+      memoria.posicao[andar][posicao] = 0; // Define o valor desejado
+    }
+  }
+}
+
+
+for (var i = 0; i < numAndares; i++) {
+  var andar = "floor" + (i+1);
+
+  for (var j = 0; j < numPosicoes; j++) {
+    var posicao = "p" + j;
+  }
+}
+
+// p0 - 1/8   p1 - 9/16 p2 - 17/24  p3 - 25/32 p4 - 33/40  p5 - 41/48  p6 - 49/56  p7 - 57/64   p8 - 65/72  p9 - 73-80
+
+for (var k = 0; k < obj.shelfs.length; k++) {
+  var shelf = obj.shelfs[k];
+  var positions = shelf.positions;
+  console.log(positions)
+  
+  for (var l = 0; l < positions.length; l++) {
+    var position = positions[l].idPosition-1;
+    console.log(position)
+    var led = positions[l].statusLed ;
+    var andar = "floor" + (shelf.idShelfs+1);
+    var point = position-8*(Math.floor((position / 8)))
+    if (point === -1){point=7}
+    if (led === 1) {
+      var posicao = "p" + (Math.floor((position / 8)));
+      console.log(posicao,point)
+      memoria.posicao[andar][posicao] = onBit(memoria.posicao[andar][posicao],point);
+      data = {
+        "data" : {
+          "id_carrinho" : obj.idCar,
+          "id_prateleira" : andar[5],
+          "id_LED" : point,
+          "comando" : led
+        }
+        } 
+    }
+  if (led===0){
+      console.log(posicao,point)
+      var posicao = "p" + (Math.floor((position / 8)));
+      memoria.posicao[andar][posicao] = bitClear(memoria.posicao[andar][posicao],point);
+      data = {
+        "data" : {
+          "id_carrinho" : obj.idCar,
+          "id_prateleira" : andar[5],
+          "id_LED" : point,
+          "comando" : led
+        }
+        } 
+  }
+   console.log(data)
+  }
+
+}
+
     try {
+
+          /*writeToSerialPort(memoria)
+            .then(() => {
+              console.log('JSON enviado com sucesso!');
+            })
+            .catch((error) => {
+              console.error('Erro ao enviar JSON:', error);
+            });*/
+     
      res.status(200).jsonp(memoria);
+     
     } catch (error) {
-        console.log(error);
+        res.status(200).jsonp({"error":error});
     }
 
  });
@@ -240,7 +276,7 @@ app.get("/fim/:namecar", (req,res) =>{
 });
 
 // Confirma a posição e a retirada do material do carrinho
-app.get("/confirmar/",(req,res) => {
+app.get("/confirmar/:serial?,:posicao_car?",(req,res) => {
 
     var serial1 = req.query.serial;
     var posicao_comp = req.query.posicao_car;
@@ -265,7 +301,6 @@ app.get("/confirmar/",(req,res) => {
             console.log("pedido : ", buscar.pedido)
             if ((buscar.pedido == '1')&&(buscar.posicao == resposta))
             {
-                console.log("Entrou AQUI !")
                 data['data']['id_prateleira'] = buscar.andar;
                 data['data']['id_LED'] = buscar.posicao;
                 data['data']['comando'] = 0;
@@ -303,7 +338,7 @@ app.post("/control/:serial?,:posicao_car?",(req,res) => {
         pedido : '0'
         });
         data['data']['id_prateleira'] = andar_carrinho;
-        data['data']['id_LED'] = posicao_carrinho;
+        data['data']['id_LED'] = posicao_carrinho
         data['data']['comando'] = 0;
 });
 
@@ -316,29 +351,24 @@ app.get("/perguntar",function(req,res){
     res.render("perguntar");
 });
 
-// Consulta o banco de dados para atualizar a mémoria do carrinho
-app.post("/search", (req, res) => {
-    var search = req.query.search;
-  
+/*
+// Busca aquele componente em vários carrinhos
+app.get("/search", (req, res) => {
+    var name_component = req.query.name_component;
+    console.log(name_component)
     movimentacao_carrinho.findAll({
       raw: true,
-      where: { serial_comp: search, deletedAt: null}, order: [['posicao', 'ASC']]
+      where: { serial_comp: name_component, deletedAt: null}, order: [['posicao', 'ASC']]
     }).then(buscar => {
       if (buscar.length > 0) {
         res.status(200).json(buscar);
 
-        // Funcao que atualiza todas as memorias de todos os carrinhos
-
-        find = []
-    
-        res.status(200).json({ "Status": "Registros Atualizados" });
-
       } else {
-        res.status(200).json({ "Status": "Nao encontrado" });
+        res.status(400).json({"Status": "Nao encontrado" });
       }
     });
   });
-  
+*/
 
 app.listen(80,function(erro){
     if(erro){
@@ -489,7 +519,10 @@ function init_dados()  // Iniciar todos os dados da memória
     memoria.posicao.floor5.p2 = 255;
     memoria.posicao.floor5.p1 = 255;
     memoria.posicao.floor5.p0 = 255;
+
 }
+
+
 
 function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
 {
@@ -497,6 +530,7 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
     var num_andar  = Number.parseInt(dados_andar, 10);
     var nr_pos = 0;
     console.log(num_andar + " , " + num_posicao);
+    
     if(num_posicao >= 73){
         nr_pos = num_posicao - 73;
 
@@ -611,7 +645,6 @@ function atualiza_memoria(dados_posicao, dados_andar) // Atuliza a memoria
         if(num_andar == 4){memoria.posicao.floor4.p0 = bitClear(memoria.posicao.floor4.p0,nr_pos);}
         if(num_andar == 5){memoria.posicao.floor5.p0 = bitClear(memoria.posicao.floor5.p0,nr_pos);}
     }
-   //console.log(nr_pos +" , " + num_andar);
 
 }
 
@@ -621,6 +654,15 @@ function bitClear(value,bit_pos)  // Desliga o led
     var valor_tmp = 255;
     valor_tmp  =  ~(1 << bit_pos);
     valor = value & valor_tmp;
+    return valor;
+}
+
+function onBit(value,bit_pos)  // Desliga o led
+{
+    var valor = 0;
+    var valor_tmp = 255;
+    valor_tmp  =  (1 << bit_pos);
+    valor = value | valor_tmp;
     return valor;
 }
 
@@ -659,3 +701,19 @@ async function DeleteAll_reg(model, where) {
     return true;
 }
   
+async function selectSerialPort() {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+  
+    return port;
+  }
+  
+async function writeToSerialPort(data) {
+    const port = await selectSerialPort();
+  
+    const writer = port.writable.getWriter();
+    await writer.write(new TextEncoder().encode(JSON.stringify(data)));
+    writer.releaseLock();
+  
+    await port.close();
+}
