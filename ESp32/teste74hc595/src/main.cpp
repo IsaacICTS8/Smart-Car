@@ -64,7 +64,7 @@ enum Commands{
   EndPisca
 };
 
-typedef struct{
+typedef struct{   // Json que vem da API    --- Vou precisar alterar o tamanho do typedef
     int id_carrinho;
     int id_prateleira;
     int id_LED;
@@ -73,66 +73,12 @@ typedef struct{
 }PacketStruct; 
 
 typedef struct{
-    int andar_00;
-    int andar_01;
-    int andar_02;
-    int andar_03;
-    int andar_04;
-    int andar_05;
-    int andar_06;
-    int andar_07;
-    int andar_08;
-    int andar_09;
-    int andar_10;
-    int andar_11;
-    int andar_12;
-    int andar_13;
-    int andar_14;
-    int andar_15;
-    int andar_16;
-    int andar_17;
-    int andar_18;
-    int andar_19;
-    int andar_20;
-    int andar_21;
-    int andar_22;
-    int andar_23;
-    int andar_24;
-    int andar_25;
-    int andar_26;
-    int andar_27;
-    int andar_28;
-    int andar_29;
-    int andar_30;
-    int andar_31;
-    int andar_32;
-    int andar_33;
-    int andar_34;
-    int andar_35;
-    int andar_36;
-    int andar_37;
-    int andar_38;
-    int andar_39;
-    int andar_40;
-    int andar_41;
-    int andar_42;
-    int andar_43;
-    int andar_44;
-    int andar_45;
-    int andar_46;
-    int andar_47;
-    int andar_48;
-    int andar_49;
-     int andar_50;
-    int andar_51;
-    int andar_52;
-    int andar_53;
-    int andar_54;
-    int andar_55;
-    int andar_56;
-    int andar_57;
-    int andar_58;
-    int andar_59;
+    int andar_00,andar_01,andar_02,andar_03,andar_04,andar_05,andar_06,andar_07,andar_08,andar_09;
+    int andar_10,andar_11,andar_12,andar_13,andar_14,andar_15,andar_16,andar_17,andar_18,andar_19;
+    int andar_20,andar_21,andar_22,andar_23,andar_24,andar_25,andar_26,andar_27,andar_28,andar_29;
+    int andar_30,andar_31,andar_32,andar_33,andar_34,andar_35,andar_36,andar_37,andar_38,andar_39;
+    int andar_40,andar_41,andar_42,andar_43,andar_44,andar_45,andar_46,andar_47,andar_48,andar_49;
+    int andar_50,andar_51,andar_52,andar_53,andar_54,andar_55,andar_56,andar_57,andar_58,andar_59;
  
 }PacketMem; 
 
@@ -236,7 +182,7 @@ void Conexao()
               if(sizeof(load) > 0) {
                 Memoria = resultOfGet1(load);
                 http.end();
-                
+
                 ledMatrix[0][9] = Memoria.andar_09;
                 ledMatrix[0][8] = Memoria.andar_08;
                 ledMatrix[0][7] = Memoria.andar_07;
@@ -247,6 +193,7 @@ void Conexao()
                 ledMatrix[0][2] = Memoria.andar_02;
                 ledMatrix[0][1] = Memoria.andar_01;
                 ledMatrix[0][0] = Memoria.andar_00;
+                
                 
                 ledMatrix[1][9] = Memoria.andar_19;
                 ledMatrix[1][8] = Memoria.andar_18;
@@ -303,14 +250,20 @@ void Conexao()
                 ledMatrix[5][2] = Memoria.andar_52;
                 ledMatrix[5][1] = Memoria.andar_51;
                 ledMatrix[5][0] = Memoria.andar_50;
-
+                }
+                for (int k=0;k<5;k++){
+                  for (int l=0;l<9;l++){
+                    Serial.print(k);
+                    Serial.print(",");
+                    Serial.print(l);
+                    Serial.print(" : ");
+                    Serial.println(ledMatrix[k][l]);
+                  }
+                }
                 updateShiftRegister(ledMatrix);
                 }
           }
    }
-                
-
-}
 
 void loop() 
 {
@@ -340,7 +293,7 @@ void loop()
            delay(1000);
          
       }*/
-      Consulta();
+      //-->   ESSA LINHA EU TIREI ONTEM Consulta();
       Conexao();
       state = WaitState;
     }
@@ -357,31 +310,46 @@ void loop()
       
             
      /// Serial.println(ledMatrix[3][0]);
+      Conexao();
       updateShiftRegister(ledMatrix);
-       unsigned long currentMillis = millis(); 
+      unsigned long currentMillis = millis(); 
       if (currentMillis - previousMillis > period) { // interval passed?
-        previousMillis = currentMillis; // save the last time
-        ///Serial.println("Connect");
+       previousMillis = currentMillis; 
+        
+        //save the last time
+        Serial.println("Connect");
         if((IncomingCommand.id_mode == 2)&&(entra_mode2 == 0)){ // Modo de Producao
                 Serial.println("Entrou no Modo 2.");
-                 Consulta();
+                 //Consulta();
                   Conexao();
                   entra_mode2 = 1;
-                  //IncomingCommand.id_mode = 0;
-                 // break;  
+                  IncomingCommand.id_mode = 0;
+                  break;  
                 }
         if ((WiFi.status() == WL_CONNECTED)) 
         { //Verifica o status da conexão
-          HTTPClient http;
-          http.begin("http://192.168.1.2/api"); // IP do servidor
+          HTTPClient http;   
+          http.begin("http://192.168.1.2/api"); // IP do servidor - essa rota me retorna uma lista de leds que eu preciso acender ou apagar
           int httpCode = http.GET();              // Faz a requisição
           if (httpCode > 0) { //verifica código de retorno
             String payload = http.getString();
-
-              if(sizeof(payload) > 0) {
+                
                 newCommand = true;
+                
                 IncomingCommand = resultOfGet(payload);
 
+                PacketStruct IncomingCommand;
+                memset(json,0,sizeof(json));
+                payload.toCharArray(json, 1600);
+                deserializeJson(doc, json);
+
+                JsonObject data = doc["data"];
+                IncomingCommand.id_carrinho = data["id_carrinho"];
+                IncomingCommand.id_prateleira = data["id_prateleira"]; 
+                IncomingCommand.id_LED = data["id_LED"];
+                IncomingCommand.command = (Commands)data["comando"]; 
+                IncomingCommand.id_mode = data["modo"];
+                
                 if((carrinho != IncomingCommand.id_carrinho)||(id_LED !=  IncomingCommand.id_LED)||(prateleira != IncomingCommand.id_prateleira)||(command != IncomingCommand.command)||( modo != IncomingCommand.id_mode))
                 {
                 carrinho = IncomingCommand.id_carrinho;
@@ -422,8 +390,6 @@ void loop()
                   }
                 }
 
-              
-              }  
           }
           else {
             Serial.println("Error on HTTP request");
@@ -475,6 +441,7 @@ void loop()
     }
     break;  
   }
+  
 }
  
 
@@ -640,73 +607,72 @@ PacketMem resultOfGet1(String msg)
 
   JsonObject posicao = doc1["posicao"];
 
+  packet.andar_00 = posicao["floor"]["p0"];
+  packet.andar_01 = posicao["floor1"]["p1"];
+  packet.andar_02 = posicao["floor1"]["p2"];
+  packet.andar_03 = posicao["floor1"]["p3"];
+  packet.andar_04 = posicao["floor1"]["p4"];
+  packet.andar_05 = posicao["floor1"]["p5"];
+  packet.andar_06 = posicao["floor1"]["p6"];
+  packet.andar_07= posicao["floor1"]["p7"];
+  packet.andar_08 = posicao["floor1"]["p8"];
+  packet.andar_09 = posicao["floor1"]["p9"];
   
- 
-  packet.andar_00 = posicao["floor0"]["p0"];
-  packet.andar_01 = posicao["floor0"]["p1"];
-  packet.andar_02 = posicao["floor0"]["p2"];
-  packet.andar_03 = posicao["floor0"]["p3"];
-  packet.andar_04 = posicao["floor0"]["p4"];
-  packet.andar_05 = posicao["floor0"]["p5"];
-  packet.andar_06 = posicao["floor0"]["p6"];
-  packet.andar_07= posicao["floor0"]["p7"];
-  packet.andar_08 = posicao["floor0"]["p8"];
-  packet.andar_09 = posicao["floor0"]["p9"];
-  
-  packet.andar_10 = posicao["floor1"]["p0"];
-  packet.andar_11 = posicao["floor1"]["p1"];
-  packet.andar_12 = posicao["floor1"]["p2"];
-  packet.andar_13 = posicao["floor1"]["p3"];
-  packet.andar_14 = posicao["floor1"]["p4"];
-  packet.andar_15 = posicao["floor1"]["p5"];
-  packet.andar_16 = posicao["floor1"]["p6"];
-  packet.andar_17= posicao["floor1"]["p7"];
-  packet.andar_18 = posicao["floor1"]["p8"];
-  packet.andar_19 = posicao["floor1"]["p9"];
+  packet.andar_10 = posicao["floor2"]["p0"];
+  packet.andar_11 = posicao["floor2"]["p1"];
+  packet.andar_12 = posicao["floor2"]["p2"];
+  packet.andar_13 = posicao["floor2"]["p3"];
+  packet.andar_14 = posicao["floor2"]["p4"];
+  packet.andar_15 = posicao["floor2"]["p5"];
+  packet.andar_16 = posicao["floor2"]["p6"];
+  packet.andar_17= posicao["floor2"]["p7"];
+  packet.andar_18 = posicao["floor2"]["p8"];
+  packet.andar_19 = posicao["floor2"]["p9"];
 
-  packet.andar_20 = posicao["floor2"]["p0"];
-  packet.andar_21 = posicao["floor2"]["p1"];
-  packet.andar_22 = posicao["floor2"]["p2"];
-  packet.andar_23 = posicao["floor2"]["p3"];
-  packet.andar_24 = posicao["floor2"]["p4"];
-  packet.andar_25 = posicao["floor2"]["p5"];
-  packet.andar_26 = posicao["floor2"]["p6"];
-  packet.andar_27= posicao["floor2"]["p7"];
-  packet.andar_28 = posicao["floor2"]["p8"];
-  packet.andar_29 = posicao["floor2"]["p9"];
+  packet.andar_20 = posicao["floor3"]["p0"];
+  packet.andar_21 = posicao["floor3"]["p1"];
+  packet.andar_22 = posicao["floor3"]["p2"];
+  packet.andar_23 = posicao["floor3"]["p3"];
+  packet.andar_24 = posicao["floor3"]["p4"];
+  packet.andar_25 = posicao["floor3"]["p5"];
+  packet.andar_26 = posicao["floor3"]["p6"];
+  packet.andar_27= posicao["floor3"]["p7"];
+  packet.andar_28 = posicao["floor3"]["p8"];
+  packet.andar_29 = posicao["floor3"]["p9"];
   
-  packet.andar_30 = posicao["floor3"]["p0"];
-  packet.andar_31 = posicao["floor3"]["p1"];
-  packet.andar_32 = posicao["floor3"]["p2"];
-  packet.andar_33 = posicao["floor3"]["p3"];
-  packet.andar_34 = posicao["floor3"]["p4"];
-  packet.andar_35 = posicao["floor3"]["p5"];
-  packet.andar_36 = posicao["floor3"]["p6"];
-  packet.andar_37= posicao["floor3"]["p7"];
-  packet.andar_38 = posicao["floor3"]["p8"];
-  packet.andar_39 = posicao["floor3"]["p9"];
+  packet.andar_30 = posicao["floor4"]["p0"];
+  packet.andar_31 = posicao["floor4"]["p1"];
+  packet.andar_32 = posicao["floor4"]["p2"];
+  packet.andar_33 = posicao["floor4"]["p3"];
+  packet.andar_34 = posicao["floor4"]["p4"];
+  packet.andar_35 = posicao["floor4"]["p5"];
+  packet.andar_36 = posicao["floor4"]["p6"];
+  packet.andar_37= posicao["floor4"]["p7"];
+  packet.andar_38 = posicao["floor4"]["p8"];
+  packet.andar_39 = posicao["floor4"]["p9"];
   
-  packet.andar_40 = posicao["floor4"]["p0"];
-  packet.andar_41 = posicao["floor4"]["p1"];
-  packet.andar_42 = posicao["floor4"]["p2"];
-  packet.andar_43 = posicao["floor4"]["p3"];
-  packet.andar_44 = posicao["floor4"]["p4"];
-  packet.andar_45 = posicao["floor4"]["p5"];
-  packet.andar_46 = posicao["floor4"]["p6"];
-  packet.andar_47= posicao["floor4"]["p7"];
-  packet.andar_48 = posicao["floor4"]["p8"];
-  packet.andar_49 = posicao["floor4"]["p9"];
+  packet.andar_40 = posicao["floor5"]["p0"];
+  packet.andar_41 = posicao["floor5"]["p1"];
+  packet.andar_42 = posicao["floor5"]["p2"];
+  packet.andar_43 = posicao["floor5"]["p3"];
+  packet.andar_44 = posicao["floor5"]["p4"];
+  packet.andar_45 = posicao["floor5"]["p5"];
+  packet.andar_46 = posicao["floor5"]["p6"];
+  packet.andar_47= posicao["floor5"]["p7"];
+  packet.andar_48 = posicao["floor5"]["p8"];
+  packet.andar_49 = posicao["floor5"]["p9"];
 
-  packet.andar_50 = posicao["floor5"]["p0"];
-  packet.andar_51 = posicao["floor5"]["p1"];
-  packet.andar_52 = posicao["floor5"]["p2"];
-  packet.andar_53 = posicao["floor5"]["p3"];
-  packet.andar_54 = posicao["floor5"]["p4"];
-  packet.andar_55 = posicao["floor5"]["p5"];
-  packet.andar_56 = posicao["floor5"]["p6"];
-  packet.andar_57= posicao["floor5"]["p7"];
-  packet.andar_58 = posicao["floor5"]["p8"];
-  packet.andar_59 = posicao["floor5"]["p9"];
+  packet.andar_50 = posicao["floor6"]["p0"];
+  packet.andar_51 = posicao["floor6"]["p1"];
+  packet.andar_52 = posicao["floor6"]["p2"];
+  packet.andar_53 = posicao["floor6"]["p3"];
+  packet.andar_54 = posicao["floor6"]["p4"];
+  packet.andar_55 = posicao["floor6"]["p5"];
+  packet.andar_56 = posicao["floor6"]["p6"];
+  packet.andar_57= posicao["floor6"]["p7"];
+  packet.andar_58 = posicao["floor6"]["p8"];
+  packet.andar_59 = posicao["floor6"]["p9"];
+
   return(packet);
 }
 
